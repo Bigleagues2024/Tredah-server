@@ -1,6 +1,7 @@
 {
   "name": "tredah",
   "version": "1.0.0",
+  "type": "module",
   "description": "Tredah market place server",
   "main": "server.js",
   "scripts": {

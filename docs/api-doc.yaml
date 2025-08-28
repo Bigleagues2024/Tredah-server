@@ -8,7 +8,7 @@ info:
   license:
     name: Apache 2.0
     url: 'http://apache.org/'
-host: api-golden-epics.onrender.com/api
+host: sandbox-tredah.onrender.com/api
 basePath: 
 schemes:
   - https

@@ -1,10 +1,10 @@
-import { sendAccountActivationEmail } from "../middleware/mailTemplate/mailService/mailTemplate"
-import { sendResponse, uploadToCloudinary } from "../middleware/utils"
-import AdminNotificationModel from "../models/AdminNotification"
-import BuyerKycInfoModel from "../models/BuyerKycInfo"
-import NotificationModel from "../models/Notification"
-import SellerKycInfoModel from "../models/SellerKycInfo"
-import UserModel from "../models/User"
+import { sendAccountActivationEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js"
+import { sendResponse, uploadToCloudinary } from "../middleware/utils.js"
+import AdminNotificationModel from "../models/AdminNotification.js"
+import BuyerKycInfoModel from "../models/BuyerKycInfo.js"
+import NotificationModel from "../models/Notification.js"
+import SellerKycInfoModel from "../models/SellerKycInfo.js"
+import UserModel from "../models/User.js"
 
 //get user profile by user
 export async function getProfile(req, res) {
@@ -157,11 +157,11 @@ export async function updateProfile(req, res) {
 
         const getUser = await UserModel.findOne({ userId })
 
-        if(accountName && typeof accountName !== 'undefined') getUser?.accountName = accountName
-        if(accountNumber && typeof accountNumber !== 'undefined') getUser?.accountNumber = accountNumber
-        if(bankName && typeof bankName !== 'undefined') getUser?.bankName = bankName
-        if(name && typeof name !== 'undefined') getUser?.name = name
-        if(imageUrl?.secure_url) getUser?.profileImg = imageUrl?.secure_url
+        if(accountName && typeof accountName !== 'undefined') getUser.accountName = accountName
+        if(accountNumber && typeof accountNumber !== 'undefined') getUser.accountNumber = accountNumber
+        if(bankName && typeof bankName !== 'undefined') getUser.bankName = bankName
+        if(name && typeof name !== 'undefined') getUser.name = name
+        if(imageUrl?.secure_url) getUser.profileImg = imageUrl?.secure_url
 
         await getUser.save()
 
