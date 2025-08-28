@@ -50,7 +50,7 @@ tags:
     description: Users data
 
 
-path:
+paths:
 #AUTH
   /auth/register:
     post:
@@ -355,7 +355,7 @@ path:
   /user/updateProfile:
     post:
       tags:
-        - USer
+        - User
       summary: Update profile
       description: Endpoint for user to update their profile
       consumes:
