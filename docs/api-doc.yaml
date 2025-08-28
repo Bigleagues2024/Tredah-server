@@ -670,7 +670,7 @@ paths:
     get:
       tags:
         - User
-      summary: Get user stats
+      summary: Get user stats (ADMIN ROUTE)
       description: The endpoint provides user stats histroy
       parameters:
         - name: period

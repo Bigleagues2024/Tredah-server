@@ -1,11 +1,12 @@
 import { sendForgotPasswordEmail, sendNewLoginEmail, sendOtpEmail, sendWelcomeEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js";
-import { generateOtp, generateUniqueCode, sendResponse, stringToNumberArray, validateAsianNumber, validateNigeriaNumber, validatePassword } from "../middleware/utils.js"
+import { generateOtp, generateUniqueCode, maskEmail, sendResponse, stringToNumberArray, validateAsianNumber, validateNigeriaNumber, validatePassword } from "../middleware/utils.js"
 import BuyerKycInfoModel from "../models/BuyerKycInfo.js";
 import OtpModel from "../models/Otp.js";
 import RefreshTokenModel from "../models/RefreshToken.js";
 import SellerKycInfoModel from "../models/SellerKycInfo.js";
 import UserModel from "../models/User.js";
 import moment from "moment";
+import crypto from 'crypto'
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const userTypeOptions = ['seller', 'buyer']
@@ -18,6 +19,7 @@ const SUSPENSION_TIME = 6 * 60 * 60 * 1000
 //register new user
 export async function register(req, res) {
     const { email, password, confirmPassword, mobileNumber, userType, sellerAccountType, buyerAccountType } = req.body
+    console.log(req.body)
     if(!email) return sendResponse(res, 400, false, null, 'Email address is required')
     if(!emailRegex.test(email)) return sendResponse(res, 400, false, null, 'Invalid email address')
     if(!mobileNumber) return sendResponse(res, 400, false, null, 'Mobile number is required')
@@ -25,7 +27,7 @@ export async function register(req, res) {
     const verifyPassword = await validatePassword(password)
     if(!verifyPassword.success) return sendResponse(res, 400, false, null, verifyPassword.message)
     if(password != confirmPassword) return sendResponse(res, 400, false, null, 'Password and confirm password do not match')
-    if(!userType || typeof userType !== 'string') return sendResponse(res, 400, false, null, 'Provide a user type')
+    if(!userType) return sendResponse(res, 400, false, null, 'Provide a user type')
     if(!userTypeOptions.includes(userType.trim().toLowerCase())) return sendResponse(res, 400, false, null, 'Invalid user type')
 
     try {
@@ -42,7 +44,7 @@ export async function register(req, res) {
             if(!sellerAccountTypeOptions.includes(sellerAccountType.trim().toLowerCase())) return sendResponse(res, 400, false, null, 'Invalid seller account type')
             //allow only nigeria number
             const verifyNumber = validateNigeriaNumber(mobileNumber)
-            if(!verifyNumber.success) return sendResponse(res, false, 400, mobileNumber, verifyNumber.message)
+            if(!verifyNumber.success) return sendResponse(res, 400, false, mobileNumber, verifyNumber.message)
             newMobileNumber = verifyNumber.number
         }
 
@@ -51,7 +53,7 @@ export async function register(req, res) {
             if(!buyerAccountTypeOptions.includes(buyerAccountType)) return sendResponse(res, 400, false, null, 'Invalid buyer account type')
             //allow only malaysia (asian countries)
             const verifyNumber = validateAsianNumber(mobileNumber)
-            if(!verifyNumber.success) return sendResponse(res, false, 400, mobileNumber, verifyNumber.message)
+            if(!verifyNumber.success) return sendResponse(res, 400, false, mobileNumber, verifyNumber.message)
             newMobileNumber = verifyNumber.number
         }
 
@@ -81,7 +83,7 @@ export async function register(req, res) {
         }
 
         //create otp and send to user
-        const getOtpCode = generateOtp({  mobileNumber: newMobileNumber, email, length: 4, accountType: 'user' })
+        const getOtpCode = await generateOtp({  mobileNumber: newMobileNumber, email, length: 4, accountType: 'user' })
         const codeArray = stringToNumberArray(getOtpCode)
         sendOtpEmail({
             email,
@@ -127,19 +129,19 @@ export async function resendOtp(req, res) {
         if(!getUser) return sendResponse(res, 404, false, null, 'User with this id does not exist')
 
         //create otp and send to user
-        const getOtpCode = generateOtp({  mobileNumber: getUser?.mobileNumber, email: getUser?.email, length: 4, accountType: 'user' })
+        const getOtpCode = await generateOtp({  mobileNumber: getUser?.mobileNumber, email: getUser?.email, length: 4, accountType: 'user' })
         const codeArray = stringToNumberArray(getOtpCode)
         sendOtpEmail({
-            email,
+            email: getUser?.email,
             name: getUser?.name || 'User',
             code: codeArray
         })
 
         //mask email address
-        const hideEmail = maskEmail(email)
+        const hideEmail = maskEmail(getUser?.email)
         sendResponse(res, 200, true, hideEmail, `Verification Otp sent to ${hideEmail}.`)
     } catch (error) {
-        console.log('UNABLE TO RESEND OTP CODE')
+        console.log('UNABLE TO RESEND OTP CODE', error)
         sendResponse(res, 500, false, null, 'Unable to resend otp code')
     }
 }
@@ -184,7 +186,7 @@ export async function verifyOtp(req, res) {
 //complete seller onboarding
 export async function completeSellerOnboarding(req, res) {
     const tredahuserid = req.cookies.tredahuserid;
-    const { sellerAccountType, name, email, mobileNumber, address, nin, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, businessEmail, taxId, socialLink } = req.body
+    const { sellerAccountType, name, email, mobileNumber, address, nin: ninValue, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, businessEmail, taxId, socialLink } = req.body
     if(sellerAccountType) {
         if(!sellerAccountTypeOptions.includes(sellerAccountType)) return sendResponse(res, 400, false, null, 'Invalid seller account type')
     }
@@ -198,6 +200,7 @@ export async function completeSellerOnboarding(req, res) {
             getUser = await UserModel.findOne({ email })
         }
         if(!getUser) return sendResponse(res, 404, false, null, 'User does not exist')
+        if(getUser?.userType === 'buyer') return sendResponse(res, 405, false, null, 'Not allowed')
 
         //if no mobile number (user signed up with google) update user mobile number
         if(!getUser?.mobileNumber) {
@@ -226,7 +229,7 @@ export async function completeSellerOnboarding(req, res) {
 
         //save seller account info
         if(sellerAccountType) getSeller.sellerAccountType = sellerAccountType
-        if(nin) getSeller.nin = nin
+        if(ninValue) getSeller.nin = ninValue
         if(address) getSeller.address = address
         if(companyName) getSeller.companyName = companyName
         if(businessType) getSeller.businessType = businessType
@@ -310,6 +313,7 @@ export async function completeBuyerOnboarding(req, res) {
             getUser = await UserModel.findOne({ email })
         }
         if(!getUser) return sendResponse(res, 404, false, null, 'User does not exist')
+        if(getUser?.userType === 'seller') return sendResponse(res, 405, false, null, 'Not allowed')
 
         //if no mobile number (user signed up with google) update user mobile number
         if(!getUser?.mobileNumber) {
@@ -547,6 +551,7 @@ export async function forgotPassword(req, res) {
         //generate  forgot password
         const resetToken = getUser.getPasswordToken()
         await getUser.save()
+        console.log('REST', resetToken)
 
         sendForgotPasswordEmail({
             email: getUser?.email,
@@ -555,7 +560,7 @@ export async function forgotPassword(req, res) {
         })
 
         //create cookies tredahuserid
-        res.cookie('tredahuserid', userId, {
+        res.cookie('tredahuserid', getUser?.userId, {
             httpOnly: true,
             sameSite: 'None',
             secure: true,

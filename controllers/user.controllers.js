@@ -200,11 +200,17 @@ export async function updateBuyerInfo(req, res) {
 
 //update seller info
 export async function updateSellerInfo(req, res) {
-    const { userId } = req.user
-    const { nin, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessEmail, taxId, businessCategory, socialLink } = req.body
+    const { userId } = req.user || {}
+    const { email, nin: ninValue, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessEmail, taxId, businessCategory, socialLink } = req.body
 
     try {
-        const getUser = await UserModel.findOne({ userId })
+        let getUser
+        if(userId) {
+            getUser = await UserModel.findOne({ userId })
+        } else {
+            getUser = await UserModel.findOne({ email })
+        }
+        if(!getUser) return sendResponse(res, 404, false, null, 'Account not found')
         const getSeller = await SellerKycInfoModel.findOne({ accountId: userId })
         if(!getSeller) return sendResponse(res, 404, false, null, 'Account not found')
 
@@ -219,7 +225,7 @@ export async function updateSellerInfo(req, res) {
         if(!getSeller.isActive) {
             if(businessRegistrationNumber) getSeller.businessRegistrationNumber = businessRegistrationNumber
             if(taxId) getSeller.taxId = taxId
-            if(nin) getSeller.nin = nin
+            if(ninValue) getSeller.nin = ninValue
         }
 
         await getSeller.save()
@@ -246,7 +252,7 @@ export async function updateSellerInfo(req, res) {
 
 //approve user account
 export async function approveAccount(req, res) {
-    const { name, adminId } = req.user
+    const { name, adminId } = req.user || {}
     const { userId } = req.body
     if(!userId) return sendResponse(res, 400, false, null, 'User is required')
 

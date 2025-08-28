@@ -8,7 +8,7 @@ const SUSPENSION_TIME = 6 * 60 * 60 * 1000
 export const AuthenticateUser = async (req, res, next) => {
     const accessToken = req.cookies.tredahtoken;
     const accountId = req.cookies.tredahauthid;
-    console.log('AUTH USER >>', { accessToken, accountId, cookies: req.cookies });
+    console.log('AUTH USER >>', { accessToken, accountId, });
 
     try {
         let user;
