@@ -1,0 +1,688 @@
+swagger: '2.0'
+info:
+  title: Tredah marekt place API Documentation
+  description: API documentation Tredah marekt place. Authentications are handled with cookies set from the server.
+  version: 1.0
+  contact:
+    email: successakinyemi365@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'http://apache.org/'
+host: api-golden-epics.onrender.com/api
+basePath: 
+schemes:
+  - https
+
+securityDefinitions:
+  Tredahoneadmintoken:
+    type: apiKey
+    in: cookie
+    name: tredahoneadmintoken
+  Trdahoneadminauthid:
+    type: apiKey
+    in: cookie
+    name: trdahoneadminauthid
+  Tredahtoken:
+    type: apiKey
+    in: cookie
+    name: tredahtoken
+  Tredahauthid:
+    type: apiKey
+    in: cookie
+    name: tredahauthid
+  Tredahuserid:
+    type: apiKey
+    in: cookie
+    name: tredahuserid
+
+security:
+  - Tredahoneadmintoken: []
+  - Trdahoneadminauthid: []
+  - Tredahtoken: []
+  - Tredahauthid: []
+  - Tredahuserid: []
+
+
+tags:
+  - name: Auth
+    description: User Authentiction
+  - name: User
+    description: Users data
+
+
+path:
+#AUTH
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register new user   
+      description: Endpoint to register user. Temporary auth cookie would be sent ensure to complete otp verification on the same page. userType = ['seller', 'buyer'] sellerAccountType = ['personal', 'business'] buyerAccountType = ['B2B', 'B2C']
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+              - password
+              - confirmPassword
+              - mobileNumber
+              - userType
+              - sellerAccountType
+              - buyerAccountType
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+              confirmPassword:
+                type: string
+              mobileNumber:
+                type: string
+              userType:
+                type: string
+              sellerAccountType:
+                type: string
+              buyerAccountType:
+                type: string
+      responses:
+        200:
+          description: Success - OTP sent to registered email address
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/resendOtp:
+    post:
+      tags:
+        - Auth
+      summary: Resend Verification OTP 
+      description: Endpoint to resend verifcation OTP
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+      responses:
+        200:
+          description: Success - OTP resent to registered email address
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/verifyOtp:
+    post:
+      tags:
+        - Auth
+      summary: Verify OTP code 
+      description: Endpoint to verify OTP code
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - otp
+            properties:
+              otp:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/completeSellerOnboarding:
+    post:
+      tags:
+        - Auth
+      summary: Complete seller account onbaording process 
+      description: Endpoint to complete seller onboarding process
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - address
+            properties:
+              sellerAccountType:
+                type: string
+              name:
+                type: string
+              email:
+                type: string
+              mobileNumber:
+                type: string
+              address:
+                type: string
+              nin:
+                type: string
+              companyName:
+                type: string
+              businessType:
+                type: string
+              businessRegistrationNumber:
+                type: string
+              businessAddress:
+                type: string
+              businessCategory:
+                type: string
+              businessEmail: 
+                type: string
+              taxId:
+                type: string
+              socialLink:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/completeBuyerOnboarding:
+    post:
+      tags:
+        - Auth
+      summary: Complete buyer account onbaording process 
+      description: Endpoint to complete buyer onboarding process
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - address
+            properties:
+              sellerAccountType:
+                type: string
+              name:
+                type: string
+              email:
+                type: string
+              mobileNumber:
+                type: string
+              address:
+                type: string
+              companyName:
+                type: string
+              businessType:
+                type: string
+              businessRegistrationNumber:
+                type: string
+              businessAddress:
+                type: string
+              businessCategory:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user 
+      description: Endpoint to login user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+              - password
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/forgotPassword:
+    post:
+      tags:
+        - Auth
+      summary: Forgot password 
+      description: Endpoint to forgot password
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+            properties:
+              email:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/resetPassword/{resetToken}:
+    post:
+      tags:
+        - Auth
+      summary: Reset password 
+      description: Endpoint to reset password
+      parameters:
+        - name: resetToken
+          in: path
+          required: true
+          description: the reset token sent with the forgot password link
+          schema:
+            type: string
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - password
+              - confirmPassword
+            properties:
+              email:
+                type: string
+              confirmPassword:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /auth/verifyToken:
+    get:
+      tags:
+        - Auth
+      summary: Verify if user auth is still valid
+      description: Endpoint to is user auth is still valid
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+  /auth/signout:
+    post:
+      tags:
+        - Auth
+      summary: Signout of Account
+      description: Endpoint to enable user signout of account
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+#USER
+  /user/updateProfile:
+    post:
+      tags:
+        - USer
+      summary: Update profile
+      description: Endpoint for user to update their profile
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: accountName
+          in: formData
+          required: false
+          type: string
+        - name: accountNumber
+          in: formData
+          required: false
+          type: string
+        - name: bankName
+          in: formData
+          required: false
+          type: string
+        - name: name
+          in: formData
+          required: false
+          type: string
+        - name: image
+          in: formData
+          required: false
+          type: file
+      responses:
+        200:
+          description: success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/updateSellerInfo:
+    post:
+      tags:
+        - User
+      summary: Update Seller Info 
+      description: Endpoint to update seller info
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              address:
+                type: string
+              companyName:
+                type: string
+              businessType:
+                type: string
+              businessAddress:
+                type: string
+              businessEmail:
+                type: string
+              businessCategory:
+                type: string
+              socialLink:
+                type: string
+              businessRegistrationNumber:
+                type: string
+              taxId:
+                type: string
+              nin:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/approveAccount:
+    post:
+      tags:
+        - Auth
+      summary: Approve account (ADMIN ROUTE)
+      description: Endpoint to approve user account
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - userId
+            properties:
+              userId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/blockAccount:
+    post:
+      tags:
+        - Auth
+      summary: Block account (ADMIN ROUTE)
+      description: Endpoint to block user account
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - userId
+            properties:
+              userId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/getProfile:
+    get:
+      tags:
+        - Auth
+      summary: Get profile
+      description: Endpoint for user to get their profile
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+  /user/getNotifications:
+    get:
+      tags:
+        - User
+      summary: Get notifications
+      description: The endpoint provides all user notifications.
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/markNotificationAsRead:
+    post:
+      tags:
+        - User
+      summary: Mark notification as read
+      description: The endpoint allows to mark a notification as read
+      required:
+        - _id
+      parameters:
+        - name: _id
+          in: body
+          required: true
+          description: The _id of the notification
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/markAllNotificationAsRead:
+    post:
+      tags:
+        - User
+      summary: mark notifications as read
+      description: The endpoint marks all notification as read
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/getAllUsers:
+    get:
+      tags:
+        - User
+      summary: Get users (ADMIN ROUTE)
+      description: The endpoint provides all users data
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          required: false
+          description: start date to begin fetching data
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          required: false
+          description: end date to stop fetching data
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for users based on name or email
+          schema:
+            type: string
+        - name: oldest
+          in: query
+          required: false
+          description: fetch data based on oldest. by default fetch data based on latest data
+          schema:
+            type: boolean
+            example: true
+        - name: verified
+          in: query
+          required: false
+          description: fetch data based on verified users.
+          schema:
+            type: boolean
+            example: true
+        - name: isActive
+          in: query
+          required: false
+          description: fetch data based on active users.
+          schema:
+            type: boolean
+            example: true
+        - name: isBlocked
+          in: query
+          required: false
+          description: fetch data based on blocked users.
+          schema:
+            type: boolean
+            example: true
+        - name: accountSuspended
+          in: query
+          required: false
+          description: fetch data based on temprorary suspended users.
+          schema:
+            type: boolean
+            example: true
+        - name: subscriber
+          in: query
+          required: false
+          description: to fetch subscribers users
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/getUser/{userId}:
+    get:
+      tags:
+        - User
+      summary: Get user data (ADMIN ROUTE)
+      description: The endpoint provides a single user data
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The userId of the user
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/getUserStats:
+    get:
+      tags:
+        - User
+      summary: Get user stats
+      description: The endpoint provides user stats histroy
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: The period for which the data should be fetched, values are - [3days 7days 30days 3mth 6mth 1year alltime] default is 30days
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
