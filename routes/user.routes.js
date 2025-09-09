@@ -1,15 +1,15 @@
 import express from 'express'
 import * as controllers from '../controllers/user.controllers.js'
 import { getLocation } from '../middleware/location.js'
-import { uploadMiddleware } from '../middleware/utils.js'
 import { AuthenticateUser } from '../middleware/auth/user-auth.js'
 import { AuthenticateAdmin, PermissionsRole } from '../middleware/auth/admin-auth.js'
 
 const router = express.Router()
 
 //POST
-router.post('/updateProfile', AuthenticateUser, uploadMiddleware, controllers.updateProfile)
+router.post('/updateProfile', AuthenticateUser, controllers.updateProfile)
 router.post('/updateSellerInfo', AuthenticateUser, controllers.updateSellerInfo)
+router.post('/updateBuyerInfo', AuthenticateUser, controllers.updateBuyerInfo)
 router.post('/markNotificationAsRead', AuthenticateUser, controllers.markNotificationAsRead)
 router.post('/markAllNotificationAsRead', AuthenticateUser, controllers.markAllNotificationAsRead)
 

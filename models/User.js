@@ -58,6 +58,9 @@ const UserSchema = new mongoose.Schema({
     bankName: {
         type: String
     },
+    isStoreActive: {
+        type: String
+    },
 
 
     /**SERVER ONLY */

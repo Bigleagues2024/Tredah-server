@@ -1,9 +1,11 @@
 import { sendAccountActivationEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js"
-import { sendResponse, uploadToCloudinary } from "../middleware/utils.js"
+import { sendResponse } from "../middleware/utils.js"
 import AdminNotificationModel from "../models/AdminNotification.js"
 import BuyerKycInfoModel from "../models/BuyerKycInfo.js"
 import NotificationModel from "../models/Notification.js"
+import ProductModel from "../models/Product.js"
 import SellerKycInfoModel from "../models/SellerKycInfo.js"
+import ShippingAddressModel from "../models/ShippingAddress.js"
 import UserModel from "../models/User.js"
 
 //get user profile by user
@@ -145,15 +147,9 @@ export async function getUser(req, res) {
 //update profile account owner
 export async function updateProfile(req, res) {
     const { userId } = req.user
-    const { accountName, accountNumber, bankName, name, } = req.body
-    const { image } = req.files || {}
+    const { accountName, accountNumber, bankName, name, imageUrl } = req.body
 
     try {
-        let imageUrl = null;
-        if (image?.[0]) {
-            console.log("Uploading images...");
-            imageUrl = await uploadToCloudinary(profileImg[0].buffer, "user/images", "image");
-        }
 
         const getUser = await UserModel.findOne({ userId })
 
@@ -161,7 +157,7 @@ export async function updateProfile(req, res) {
         if(accountNumber && typeof accountNumber !== 'undefined') getUser.accountNumber = accountNumber
         if(bankName && typeof bankName !== 'undefined') getUser.bankName = bankName
         if(name && typeof name !== 'undefined') getUser.name = name
-        if(imageUrl?.secure_url) getUser.profileImg = imageUrl?.secure_url
+        if(imageUrl) getUser.profileImg = imageUrl
 
         await getUser.save()
 
@@ -187,11 +183,51 @@ export async function updateProfile(req, res) {
 
 //update buyer info
 export async function updateBuyerInfo(req, res) {
-    const { userId } = req.user
-    const { } = req.body
+    const { userId } = req.user || {}
+    const { buyerAccountType, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory } = req.body
 
     try {
-        
+        let getUser
+        if(userId) {
+            getUser = await UserModel.findOne({ userId })
+        }
+        if(!getUser) return sendResponse(res, 404, false, null, 'Account not found')
+        const getBuyer = await BuyerKycInfoModel.findOne({ accountId: userId })
+        if(!getBuyer) return sendResponse(res, 404, false, null, 'Account not found')
+        if(getBuyer.buyerAccountType === 'B2C'){
+            if(buyerAccountType === 'B2B') {
+                if(!businessRegistrationNumber && !getBuyer.businessRegistrationNumber) {
+                    return sendResponse(res, 400, false, null, 'Provide Business registration number to change to B2B')
+                }
+            }
+        }
+        if(address) getBuyer.address = address
+        if(companyName) getBuyer.companyName = companyName
+        if(businessType) getBuyer.businessType = businessType
+        if(businessAddress) getBuyer.businessAddress = businessAddress
+        if(businessCategory) getBuyer.businessCategory = businessCategory
+
+        if(!getBuyer.isActive) {
+            if(businessRegistrationNumber) getBuyer.businessRegistrationNumber = businessRegistrationNumber
+        }
+
+        await getBuyer.save()
+
+        //send user data
+        const { password: userPassword, verified, isBlocked, accountSuspended, noOfLoginAttempts, temporaryAccountBlockTime, resetPasswordToken, resetPasswordExpire, subscriptionPriceId, subscriptionId, _id, ...userData } = getUser._doc;
+        let getBusinessAccount
+        if(getUser?.userType === 'buyer') {
+            getBusinessAccount = await BuyerKycInfoModel.findOne({ accountId: getUser?.userId })
+        } else {
+            getBusinessAccount = await SellerKycInfoModel.findOne({ accountId: getUser?.userId })
+        }
+        const { accountId, ...businessAccountInfo } = getBusinessAccount._doc
+        const data = {
+            ...userData,
+            ...businessAccountInfo
+        }
+        sendResponse(res, 200, true, data, 'Seller Information Updated')
+
     } catch (error) {
         console.log('UNABLE TO UDATE BUYER ACCOUNT', error)
         sendResponse(res, 500, false, null, 'Unable to udate nuyer account')
@@ -244,6 +280,15 @@ export async function updateSellerInfo(req, res) {
             ...businessAccountInfo
         }
         sendResponse(res, 200, true, data, 'Seller Information Updated')
+
+        //if companay name
+        if(companyName) {
+            //get all product with the same userId and update the storeName of the company with the companyName
+            const result = await ProductModel.updateMany(
+                { userId: userId },
+                { $set: { storeName: companyName } }
+            );
+        }
     } catch (error) {
         console.log('UNABLE TO UPDATE SELLER INFO', error)
         sendResponse(res, 500, false, null, 'Unable to update seller account')
@@ -476,3 +521,39 @@ export async function getUserStats(req, res) {
         sendResponse(res, 500, false, 'Unable to get user stats');
     }
 }
+
+//add new shipping address
+export async function addShippingAddres(req, res) {
+    const { userId, name: userName, mobileNumber } = req.user
+    const { name, phoneNumber, addressLine, addressLineTwo, country, state, city, postalCode } = req.body
+    if(!addressLine) return sendResponse(res, 400, false, null, 'Address One is required')
+    if(!country) return sendResponse(res, 400, false, null, 'Country is required')
+    if(!state) return sendResponse(res, 400, false, null, 'State is required')
+    if(!city) return sendResponse(res, 400, false, null, 'City is required')
+    if(!postalCode) return sendResponse(res, 400, false, null, 'Postal code is required')
+
+    try {
+        const newAddress = await ShippingAddressModel.create({
+            userId,
+            name: name || userName,
+            phoneNumber: phoneNumber || mobileNumber,
+            addressLine,
+            addressLineTwo,
+            country,
+            state,
+            city,
+            postalCode
+        })
+
+        sendResponse(res, 201, true, newAddress, 'Shipping address saved successful')
+    } catch (error) {
+        console.log('UNABLE TO ADD A NEW SHIPPING ADDRESS', error)
+        sendResponse(res, 500, false, null, 'Unable to add shipping address')
+    }
+}
+
+//edit shipping address
+
+//delete shiping address
+
+//get user shipping address(es)

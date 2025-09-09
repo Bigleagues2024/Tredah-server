@@ -47,8 +47,8 @@ const storage = multer.memoryStorage(); // Use memory storage for direct streami
 const upload = multer({ storage });
 
 export const uploadMiddleware = upload.fields([
-  { name: "image", maxCount: 1 },
-  { name: "images", maxCount: 1 },
+  { name: "media", maxCount: 1 },
+  { name: "medias", maxCount: 30 },
 ]);
 
 export async function calculateAverageRating(reviews = []) {

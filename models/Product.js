@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
-const ProductsSchema = new mongoose.Schema({
-    userId: {
+const ProductSchema = new mongoose.Schema({
+    sellerId: {
         type: String,
         required: [ true, 'User Id is required' ]
     },
@@ -10,8 +10,14 @@ const ProductsSchema = new mongoose.Schema({
         required: [ true, 'Product Id is required' ],
         unique: [ true, 'Product Id must be unique' ]
     },
-    title: {
+    storeName: {
+        type: String
+    },
+    name: {
         title: String,
+    },
+    about: {
+        type: String
     },
     description: {
         type: String,
@@ -20,7 +26,7 @@ const ProductsSchema = new mongoose.Schema({
         type: Array
     },
     subCategory: {
-        type: String
+        type: Array
     },
     displayPrice: {
         type: Number
@@ -28,11 +34,17 @@ const ProductsSchema = new mongoose.Schema({
     weight: {
         type: String
     },
-    weightVaue: {
+    weightValue: {
         type: String
+    },
+    totalQuantitySold: {
+        type: Number
     },
     moq: {
         type: Number
+    },
+    mainImage:{
+        type: String
     },
     media: {
         type: Array
@@ -40,9 +52,39 @@ const ProductsSchema = new mongoose.Schema({
     variant: {
         type: Array  //would be an array of object
     },
+    revenueGenerated: {
+        type: Number,
+        default: 0
+    },
+    likes: {
+        type: Array,
+        default: []
+    },
+    quantityInStock: {
+        type: Number,
+    },
+    noOfSales: {
+        type: Number,
+        default: 0
+    },
+    inStock: {
+        type: Boolean,
+        default: true
+    },
+    active: {
+        type: Boolean,
+        default: true
+    },
+    blocked: {
+        type: Boolean,
+        default: false
+    },
+    blockedReason: {
+        type: String
+    }
 },
 { timestamps: true }
 )
 
-const ProductModel = mongoose.model('product', ProductsSchema)
+const ProductModel = mongoose.model('product', ProductSchema)
 export default ProductModel

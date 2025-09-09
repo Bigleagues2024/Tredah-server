@@ -46,9 +46,16 @@ security:
 tags:
   - name: Auth
     description: User Authentiction
+  - name: Upload
+    description: Upload files endpoint
   - name: User
     description: Users data
-
+  - name: Product
+    description: Product endpoint
+  - name: Seller
+    description: Seller endpoint
+  - name: General Socket
+    description: Inter app chat features socket.io
 
 paths:
 #AUTH
@@ -208,7 +215,7 @@ paths:
               - name
               - address
             properties:
-              sellerAccountType:
+              buyerAccountType:
                 type: string
               name:
                 type: string
@@ -351,6 +358,35 @@ paths:
         500:
           description: Server error
 
+#UPLOAD
+  /upload/:
+    post:
+      tags:
+        - Upload
+      summary: Upload media files
+      description: Endpoint for user to upload media files
+      consumes:
+        - multipart/form-data
+      parameters:
+        - name: media
+          in: formData
+          required: false
+          description: Single file upload
+          type: file
+        - name: medias
+          in: formData
+          required: false
+          description: Multiple file upload
+          type: file
+          collectionFormat: multi
+      responses:
+        200:
+          description: success
+        400:
+          description: User error
+        500:
+          description: Server error
+
 #USER
   /user/updateProfile:
     post:
@@ -358,32 +394,26 @@ paths:
         - User
       summary: Update profile
       description: Endpoint for user to update their profile
-      consumes:
-        - multipart/form-data
       parameters:
-        - name: accountName
-          in: formData
-          required: false
-          type: string
-        - name: accountNumber
-          in: formData
-          required: false
-          type: string
-        - name: bankName
-          in: formData
-          required: false
-          type: string
-        - name: name
-          in: formData
-          required: false
-          type: string
-        - name: image
-          in: formData
-          required: false
-          type: file
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              accountName:
+                type: string
+              accountNumber:
+                type: string
+              bankName:
+                type: string
+              name:
+                type: string
+              imageUrl:
+                type: string
       responses:
         200:
-          description: success
+          description: Success
         400:
           description: User error
         500:
@@ -421,6 +451,41 @@ paths:
               taxId:
                 type: string
               nin:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/updateBuyerInfo:
+    post:
+      tags:
+        - User
+      summary: Update Buyer Info 
+      description: Endpoint to update buyer info
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              businessRegistrationNumber:
+                type: string
+              address:
+                type: string
+              companyName:
+                type: string
+              businessType:
+                type: string
+              businessRegistrationNumber:
+                type: string
+              businessAddress:
+                type: string
+              businessCategory:
                 type: string
       responses:
         200:
@@ -686,3 +751,1343 @@ paths:
           description: user error
         500: 
           description: server error
+
+#PRODUCT
+  /product/newProduct:
+    post:
+      tags:
+        - Product
+      summary: Create a new product (SELLER)
+      description: Endpoint to create a new product by seller
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - productImageUrl
+              - about
+              - description
+              - displayPrice
+              - category
+            properties:
+              name:
+                type: string
+              about:
+                type: string
+              description:
+                type: string
+              category: 
+                type: array
+                items:
+                  type: string
+              subCategory: 
+                type: array
+                items:
+                  type: string
+              displayPrice:
+                type: number
+              weight:
+                type: number
+              weightValue:
+                type: number
+              moq:
+                type: number
+              variant:
+                type: array
+                items:
+                  type: object
+              quantityInStock:
+                type: number
+              productImageUrl:
+                type: string
+              mediaImagesUrls:
+                type: array
+                items:
+                  type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/editProduct:
+    post:
+      tags:
+        - Product
+      summary: Update a product (SELLER)
+      description: Endpoint to update a product by seller
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+              - name
+              - productImageUrl
+              - about
+              - description
+              - displayPrice
+              - category
+            properties:
+              productId:
+                type: string
+              name:
+                type: string
+              about:
+                type: string
+              description:
+                type: string
+              category: 
+                type: array
+                items:
+                  type: string
+              subCategory: 
+                type: array
+                items:
+                  type: string
+              displayPrice:
+                type: number
+              weight:
+                type: number
+              weightValue:
+                type: number
+              moq:
+                type: number
+              variant:
+                type: array
+                items:
+                  type: object
+              quantityInStock:
+                type: number
+              productImageUrl:
+                type: string
+              mediaImagesUrls:
+                type: array
+                items:
+                  type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/deleteProduct:
+    post:
+      tags:
+        - Product
+      summary: Delete a product (SELLER)
+      description: Endpoint to delete a product by seller
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/deActivateProduct:
+    post:
+      tags:
+        - Product
+      summary: Deactivate a product (SELLER)
+      description: Endpoint to deactivate a product by seller
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/activateProduct:
+    post:
+      tags:
+        - Product
+      summary: Activate a product (SELLER)
+      description: Endpoint to activate a product by seller
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/rateProduct:
+    post:
+      tags:
+        - Product
+      summary: Rate a product
+      description: Endpoint to drop ratings for a product by users
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+              rating: 
+                type: number
+                min: 1
+                max: 5
+              review: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/likeProduct:
+    post:
+      tags:
+        - Product
+      summary: Like a product
+      description: Endpoint to drop like for a product by users
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/unlikeProduct:
+    post:
+      tags:
+        - Product
+      summary: Unlike a product
+      description: Endpoint to unlike a product by users
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/blockProduct:
+    post:
+      tags:
+        - Product
+      summary: Block a product (ADMIN ROUTE)
+      description: Endpoint to block a product
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/unBlockProduct:
+    post:
+      tags:
+        - Product
+      summary: Ublock a product (ADMIN ROUTE)
+      description: Endpoint to unblock a product
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productId
+            properties:
+              productId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/getCategories:
+    get:
+      tags:
+        - Product
+      summary: Get product categories
+      description: Endpoint to get product categories
+      parameters:
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /product/getProducts:
+    get:
+      tags:
+        - Product
+      summary: Get all available product to users
+      description: The endpoint provides all avaible products to users
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Search based on category
+          schema:
+            type: string
+        - name: sellerId
+          in: query
+          required: false
+          description: Search based on sellerId
+          schema:
+            type: string
+        - name: storeName
+          in: query
+          required: false
+          description: Search based on store name
+          schema:
+            type: string
+        - name: oldest
+          in: query
+          required: false
+          description: Filter based on oldest product
+          schema:
+            type: string
+        - name: latest
+          in: query
+          required: false
+          description: Filter based on lastest
+          schema:
+            type: boolean
+            example: false
+        - name: maxPrice
+          in: query
+          required: false
+          description: Filter based max price range
+          schema:
+            type: number
+            example: 100
+        - name: minPrice
+          in: query
+          required: false
+          description: Filter based min price range
+          schema:
+            type: number
+            example: 100
+        - name: popular
+          in: query
+          required: false
+          description: Filter based on popular product
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+          
+  /product/getStoreProducts/{sellerId}:
+    get:
+      tags:
+        - Product
+      summary: Get store available products to users
+      description: The endpoint provides all available products to users of a particular store
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Search based on category
+          schema:
+            type: string
+        - name: sellerId
+          in: path
+          required: true
+          description: Search based on sellerId
+          schema:
+            type: string
+        - name: storeName
+          in: query
+          required: false
+          description: Search based on store name
+          schema:
+            type: string
+        - name: oldest
+          in: query
+          required: false
+          description: Filter based on oldest product
+          schema:
+            type: string
+        - name: latest
+          in: query
+          required: false
+          description: Filter based on lastest
+          schema:
+            type: boolean
+            example: false
+        - name: maxPrice
+          in: query
+          required: false
+          description: Filter based max price range
+          schema:
+            type: boolean
+            example: false
+        - name: minPrice
+          in: query
+          required: false
+          description: Filter based min price range
+          schema:
+            type: boolean
+            example: false
+        - name: popular
+          in: query
+          required: false
+          description: Filter based on popular product
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getProduct/{productId}:
+    get:
+      tags:
+        - Product
+      summary: Get a product to user
+      description: The endpoint provides a product details to user
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: productId of the product
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getRelatedProduct/{productId}:
+    get:
+      tags:
+        - Product
+      summary: Get related product of a product to user
+      description: The endpoint provides related products a product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: productId of the product
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: true
+          description: limit of the data to fetch
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: page of the data to fetch
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getProductReview/{productId}:
+    get:
+      tags:
+        - Product
+      summary: Get a product to review
+      description: The endpoint provides a product reviews to user
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          description: productId of the product
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: true
+          description: limit of the data to fetch
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: page of the data to fetch
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getStoreProduct:
+    get:
+      tags:
+        - Product
+      summary: Get all products of a store owner (STORE OWNER ROUTE)
+      description: The endpoint provides all products of a store owner
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Search based on category
+          schema:
+            type: string
+        - name: oldest
+          in: query
+          required: false
+          description: Filter based on oldest product
+          schema:
+            type: string
+        - name: latest
+          in: query
+          required: false
+          description: Filter based on lastest
+          schema:
+            type: boolean
+            example: false
+        - name: maxPrice
+          in: query
+          required: false
+          description: Filter based max price range
+          schema:
+            type: boolean
+            example: false
+        - name: minPrice
+          in: query
+          required: false
+          description: Filter based min price range
+          schema:
+            type: boolean
+            example: false
+        - name: popular
+          in: query
+          required: false
+          description: Filter based on popular product
+          schema:
+            type: boolean
+            example: false
+        - name: active
+          in: query
+          required: false
+          description: Filter based on active product
+          schema:
+            type: boolean
+            example: false
+        - name: blocked
+          in: query
+          required: false
+          description: Filter based on bocked product
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getProductDetail/{productId}:
+    get:
+      tags:
+        - Product
+      summary: Get a product details (STORE OWNER ROUTE)
+      description: The endpoint provides product detail owner
+      parameters:
+        - name: productId
+          in: query
+          required: true
+          description: The productId
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getAllProducts:
+    get:
+      tags:
+        - Product
+      summary: Get all product (ADMIN ROUTE)
+      description: The endpoint provides all products
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Search based on category
+          schema:
+            type: string
+        - name: sellerId
+          in: query
+          required: false
+          description: Search based on sellerId
+          schema:
+            type: string
+        - name: storeName
+          in: query
+          required: false
+          description: Search based on store name
+          schema:
+            type: string
+        - name: oldest
+          in: query
+          required: false
+          description: Filter based on oldest product
+          schema:
+            type: string
+        - name: latest
+          in: query
+          required: false
+          description: Filter based on lastest
+          schema:
+            type: boolean
+            example: false
+        - name: maxPrice
+          in: query
+          required: false
+          description: Filter based max price range
+          schema:
+            type: boolean
+            example: false
+        - name: minPrice
+          in: query
+          required: false
+          description: Filter based min price range
+          schema:
+            type: boolean
+            example: false
+        - name: popular
+          in: query
+          required: false
+          description: Filter based on popular product
+          schema:
+            type: boolean
+            example: false
+        - name: active
+          in: query
+          required: false
+          description: Filter based on active product
+          schema:
+            type: boolean
+            example: false
+        - name: blocked
+          in: query
+          required: false
+          description: Filter based on bocked product
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getSellerProducts/{sellerId}:
+    get:
+      tags:
+        - Product
+      summary: Get all products of a store owner (ADMIN ROUTE)
+      description: The endpoint provides all products of a store owner
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Search based on category
+          schema:
+            type: string
+        - name: sellerId
+          in: path
+          required: true
+          description: Search based on sellerId
+          schema:
+            type: string
+        - name: storeName
+          in: query
+          required: false
+          description: Search based on store name
+          schema:
+            type: string
+        - name: oldest
+          in: query
+          required: false
+          description: Filter based on oldest product
+          schema:
+            type: string
+        - name: latest
+          in: query
+          required: false
+          description: Filter based on lastest
+          schema:
+            type: boolean
+            example: false
+        - name: maxPrice
+          in: query
+          required: false
+          description: Filter based max price range
+          schema:
+            type: boolean
+            example: false
+        - name: minPrice
+          in: query
+          required: false
+          description: Filter based min price range
+          schema:
+            type: boolean
+            example: false
+        - name: popular
+          in: query
+          required: false
+          description: Filter based on popular product
+          schema:
+            type: boolean
+            example: false
+        - name: active
+          in: query
+          required: false
+          description: Filter based on active product
+          schema:
+            type: boolean
+            example: false
+        - name: blocked
+          in: query
+          required: false
+          description: Filter based on bocked product
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /product/getAProduct/{productId}:
+    get:
+      tags:
+        - Product
+      summary: Get a product details (ADMIN ROUTE)
+      description: The endpoint provides product detail owner
+      parameters:
+        - name: productId
+          in: query
+          required: true
+          description: The productId
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+#SELLER
+  /seller/updateStoreDetails:
+    post:
+      tags:
+        - Seller
+      summary: Update Store details (SELELR)
+      description: Endpoint to update/create store front details
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              storeImg:
+                type: string
+              name: 
+                type: string
+              about: 
+                type: string
+              description: 
+                type: string
+              businessAddress:
+                type: string
+              socialLink: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /seller/rateStore:
+    post:
+      tags:
+        - Seller
+      summary: Rate a seller store front
+      description: Endpoint to drop ratings for a seller store front by users
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - sellerId
+            properties:
+              sellerId:
+                type: string
+              rating: 
+                type: number
+                min: 1
+                max: 5
+              review: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /seller/activateStore:
+    post:
+      tags:
+        - Seller
+      summary: Activate store front (ADMIN ROUTE)
+      description: Endpoint to activate a store
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - sellerId
+            properties:
+              sellerId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /seller/deactivateStore:
+    post:
+      tags:
+        - Seller
+      summary: Deactivate store front (ADMIN ROUTE)
+      description: Endpoint to deactivate a store
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - sellerId
+            properties:
+              sellerId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /seller/getStoreReview/{sellerId}:
+    get:
+      tags:
+        - Seller
+      summary: Get a store front review
+      description: The endpoint provides a store front reviews to user
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          description: sellerId of the product
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: true
+          description: limit of the data to fetch
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: page of the data to fetch
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /seller/getStoreInfo/{sellerId}:
+    get:
+      tags:
+        - Seller
+      summary: Get a store front details
+      description: The endpoint provides a store front details to user
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          description: sellerId of the product
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /seller/getStoreInfo:
+    get:
+      tags:
+        - Seller
+      summary: Get a store front details (STORE OWNER)
+      description: The endpoint provides a store front details to store owner
+      parameters:
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /seller/getAllStores:
+    get:
+      tags:
+        - Seller
+      summary: Get all sellers store fronts (ADMIN ROUTE)
+      description: The endpoint provides all seller store fronts
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+        - name: active
+          in: query
+          required: false
+          description: Filter based on active product
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /seller/getAStoreInfo/{sellerId}:
+    get:
+      tags:
+        - Seller
+      summary: Get a store front details (ADMIN ROUTE)
+      description: The endpoint provides a store front details to admin
+      parameters:
+        - name: sellerId
+          in: path
+          required: true
+          description: sellerId of the product
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+#GENERAL SOCKET CONNECTIONS
+  /general:
+    post:
+      tags:
+        - General Socket
+      summary: SOCKET.IO CONNECTION (SEND MESSAGE) socket.on(sendMessage, data) response- socket.emit(sendMessage, response) - RESPONSE TO OTHER USER socket.emit(incomingMessage, response)
+      description: This is a socket.io connection to send message under the /general namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - receiverId
+            properties:
+              receiverId:
+                type: string
+              message: 
+                type: string
+              mediaLink: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /general/:
+    post:
+      tags:
+        - General Socket
+      summary: SOCKET.IO CONNECTION (GET CHAT HISTROY) socket.on(getChatHistroy, data) response- socket.emit(getChatHistroy, response)
+      description: This is a socket.io connection to get a single message chat under the /general namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - chatId
+            properties:
+              chatId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /general//:
+    post:
+      tags:
+        - General Socket
+      summary: SOCKET.IO CONNECTION (EDIT MESSAGE) socket.on(editMessage, data) response- socket.emit(editMessage, response) - RESPONSE TO OTHER USER socket.emit(messageUpdated, response)
+      description: This is a socket.io connection to edit message under the /general namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - chatId
+              - messageId
+            properties:
+              chatId:
+                type: string
+              messageId:
+                type: string
+              newMessage: 
+                type: string
+              mediaLink: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /general//:
+    post:
+      tags:
+        - General Socket
+      summary: SOCKET.IO CONNECTION (DELETE CHAT HISTROY) socket.on(deleteMessage, data) response- socket.emit(deleteMessage, response) - RESPONSE TO OTHER USER socket.emit(messageDeleted, response)
+      description: This is a socket.io connection to delete message under the /general namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - chatId
+              - messageId
+            properties:
+              chatId:
+                type: string
+              messageId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /general///:
+    post:
+      tags:
+        - General Socket
+      summary: SOCKET.IO CONNECTION (GET CHAT CONTACT HISTROY) socket.on(getChats, data) response- socket.emit(getChats, response)
+      description: This is a socket.io connection to get chat contact histroy the /general namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error

@@ -67,12 +67,19 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 //ROUTES IMPORT
 import UserAuthRoutes from './routes/userAuth.routes.js'
 import UserRoutes from './routes/user.routes.js'
+import UploadRoutes from './routes/upload.routes.js'
+import ProductRoutes from './routes/product.routes.js'
+import SellerRoutes from './routes/seller.routes.js'
 
 
 
 //ROUTES ENDPOINT
 app.use('/api/auth', UserAuthRoutes)
 app.use('/api/user', UserRoutes)
+app.use('/api/upload', UploadRoutes)
+app.use('/api/product', ProductRoutes)
+app.use('/api/seller', SellerRoutes)
+
 
 
 
@@ -95,7 +102,7 @@ import { sendResponse } from "./middleware/utils.js";
 /**GENERAL SOCKET */
 import { AuthenticateUserSocket } from "./middleware/auth/user-auth.js";
 
-//import * as interactiveSectionController from './controllers/sex-orient/interactiveSectionCourse.controllers.js';
+import * as messageChat from './controllers/chat.controllers.js';
 
 export const generalNamespace = io.of('/general');
 
@@ -114,7 +121,17 @@ generalNamespace.on('connection', (socket) => {
   console.log('CONNECTING USER ID TO SOCKET ID', generalConnections)
 
   //sockets for live call
-  //socket.on('interactiveChat', (data) => interactiveSectionController.interactiveChat( data, socket ));
+  socket.on('sendMessage', (data) => messageChat.sendMessage( data, socket )); //send message to user(either seller or buyer) (incomingMessage)
+  socket.on('getChatHistroy', (data) => messageChat.getChatHistroy( data, socket )); //get chat histroy a user chat with receiver
+  socket.on('editMessage', (data) => messageChat.editMessage( data, socket )); //update sent message ('messageUpdated)
+  socket.on('deleteMessage', (data) => messageChat.deleteMessage( data, socket )); //delete sent message ('messageDeleted)
+  socket.on('getChats', (data) => messageChat.getChats( data, socket )); //user get chats history
+  //socket emits
+  //incomingMessage
+  //messageUpdated
+  //messageDeleted
+
+
   
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
