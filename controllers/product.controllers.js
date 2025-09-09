@@ -4,6 +4,7 @@ import ProductModel from "../models/Product.js";
 import ProductCategoryModel from "../models/ProductCategory.js";
 import ProductReviewModel from "../models/ProductReview.js";
 import SellerKycInfoModel from "../models/SellerKycInfo.js";
+import UserModel from "../models/User.js";
 
 export const findOrCreateCategories = async (categories) => {
   if (!Array.isArray(categories)) throw new Error("Categories must be an array");
@@ -73,6 +74,10 @@ export async function newProduct(req, res) {
             variant,
             quantityInStock
         })
+
+        const getUser = await UserModel.findOne({ userId })
+        getUser.productCount += 1
+        await getUser.save()
 
         sendResponse(res, 201, true, product, 'New product created successful')
     } catch (error) {

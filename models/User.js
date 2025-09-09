@@ -59,9 +59,12 @@ const UserSchema = new mongoose.Schema({
         type: String
     },
     isStoreActive: {
-        type: String
+        type: Boolean
     },
-
+    productCount: {
+        type: Number,
+        default: 0
+    },
 
     /**SERVER ONLY */
     password: {
