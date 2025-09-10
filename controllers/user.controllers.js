@@ -553,7 +553,62 @@ export async function addShippingAddres(req, res) {
 }
 
 //edit shipping address
+export async function editShippingAddres(req, res) {
+    const { userId} = req.user
+    const { id, name, phoneNumber, addressLine, addressLineTwo, country, state, city, postalCode } = req.body
+    if(!id) return sendResponse(res, 400, false, null, 'Shipping Id is required')
+
+    try {
+
+        const getAddress = await ShippingAddressModel.findOne({ _id: id, userId })
+        if(!getAddress) return sendResponse(res, 404, false, null, 'Shipping details not found')
+        
+        if(name) getAddress.name = name
+        if(phoneNumber) getAddress.phoneNumber = phoneNumber
+        if(addressLine) getAddress.addressLine = addressLine
+        if(addressLineTwo) getAddress.addressLineTwo = addressLineTwo
+        if(country) getAddress.country = country
+        if(state) getAddress.state = state
+        if(city) getAddress.city = city
+        if(postalCode) getAddress.postalCode = postalCode
+        await getAddress.save()
+
+        sendResponse(res, 201, true, getAddress, 'Shipping address updated successful')
+    } catch (error) {
+        console.log('UNABLE TO UPDATE A SHIPPING ADDRESS', error)
+        sendResponse(res, 500, false, null, 'Unable to update shipping address')
+    }
+}
 
 //delete shiping address
+export async function deleteShippingAddres(req, res) {
+    const { userId } = req.user
+    const { id } = req.body
+    
+    try {
+        const getAddress = await ShippingAddressModel.findOneAndDelete({ _id: id, userId })
+        if(!getAddress) return sendResponse(res, 404, false, null, 'Shipping Details not found')
+                
+        sendResponse(res, 200, true, null, 'Shipping details deleted successful')
+    } catch (error) {
+        console.log('UNABLE TO DELETE SHIPPING ACCOUNT', error)
+        sendResponse(res, 500, false, null, 'Unable to delete shipping account')
+    }
+}
 
 //get user shipping address(es)
+export async function getShippingAddress(req, res) {
+    const { userId: ownerId } = req.user
+    const { userId: accountId } = req.params
+    const userId = accountId || ownerId
+    if(!userId) return sendResponse(res, 400, false, null, 'User Id is required')
+        
+    try {
+        const getAddress = await ShippingAddressModel.find({ userId })
+
+        sendResponse(res, 200, true, getAddress, 'Shipping address(s) fetched successful')
+    } catch (error) {
+        console.log('UNABLE TO GET SHIPPING ADDRESS', error)
+        sendResponse(res, 500, false, null, 'Unable to get shipping address')
+    }
+}

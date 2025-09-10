@@ -498,7 +498,7 @@ paths:
   /user/approveAccount:
     post:
       tags:
-        - Auth
+        - User
       summary: Approve account (ADMIN ROUTE)
       description: Endpoint to approve user account
       parameters:
@@ -523,7 +523,7 @@ paths:
   /user/blockAccount:
     post:
       tags:
-        - Auth
+        - User
       summary: Block account (ADMIN ROUTE)
       description: Endpoint to block user account
       parameters:
@@ -545,10 +545,137 @@ paths:
         500:
           description: Server error
 
+  /user/addShippingAddres:
+    post:
+      tags:
+        - User
+      summary: Add Shipping Address
+      description: Endpoint to add shipping address by user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - addressLine
+              - country
+              - state
+              - city
+              - postalCode
+            properties:
+              name:
+                type: string
+              phoneNumber:
+                type: string
+              addressLine:
+                type: string
+              addressLineTwo:
+                type: string
+              country:
+                type: string
+              state:
+                type: string
+              city:
+                type: string
+              postalCode:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/editShippingAddres:
+    post:
+      tags:
+        - User
+      summary: Update Shipping Address
+      description: Endpoint to update shipping address by user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - id
+              - addressLine
+              - country
+              - state
+              - city
+              - postalCode
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              phoneNumber:
+                type: string
+              addressLine:
+                type: string
+              addressLineTwo:
+                type: string
+              country:
+                type: string
+              state:
+                type: string
+              city:
+                type: string
+              postalCode:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/deleteShippingAddres:
+    post:
+      tags:
+        - User
+      summary: Delete Shipping Address
+      description: Endpoint to delete shipping address by user
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/getShippingAddress:
+    get:
+      tags:
+        - User
+      summary: Get User Shipping Address(s)
+      description: Endpoint user shipping address(s)
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
   /user/getProfile:
     get:
       tags:
-        - Auth
+        - User
       summary: Get profile
       description: Endpoint for user to get their profile
       responses:

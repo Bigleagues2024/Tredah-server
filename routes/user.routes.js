@@ -12,6 +12,9 @@ router.post('/updateSellerInfo', AuthenticateUser, controllers.updateSellerInfo)
 router.post('/updateBuyerInfo', AuthenticateUser, controllers.updateBuyerInfo)
 router.post('/markNotificationAsRead', AuthenticateUser, controllers.markNotificationAsRead)
 router.post('/markAllNotificationAsRead', AuthenticateUser, controllers.markAllNotificationAsRead)
+router.post('/addShippingAddres', AuthenticateUser, controllers.addShippingAddres)
+router.post('/editShippingAddres', AuthenticateUser, controllers.editShippingAddres)
+router.post('/deleteShippingAddres', AuthenticateUser, controllers.deleteShippingAddres)
 
 //post methods admin
 //router.post('/approveAccount', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.approveAccount)
@@ -22,11 +25,13 @@ router.post('/approveAccount', controllers.approveAccount)
 //GET
 router.get('/getProfile', AuthenticateUser, controllers.getProfile)
 router.get('/getNotifications', AuthenticateUser, controllers.getNotifications)
+router.get('/getShippingAddress', AuthenticateUser, controllers.getShippingAddress)
 
 //get methods admin
 router.get('/getAllUsers', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getAllUsers)
 router.get('/getUser/:userId', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getUser)
 router.get('/getUserStats', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getUserStats)
+router.get('/getUserShippingAddress/:userId', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getUser)
 
 
 export default router
