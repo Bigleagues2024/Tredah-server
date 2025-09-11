@@ -101,7 +101,7 @@ export async function register(req, res) {
 
         //mask email address
         const hideEmail = maskEmail(email)
-        sendResponse(res, 201, true, hideEmail, `User created enter email sent to ${hideEmail} to verify account`)
+        sendResponse(res, 201, true, hideEmail, `User created otp email sent to ${hideEmail} to verify account`)
     } catch (error) {
         console.log('UNABLE TO CREATE A NEW USER ACCOUNT', error)
         sendResponse(res, 500, false, null, 'Unable to create new user account')
@@ -416,11 +416,18 @@ export async function login(req, res) {
         if(!getUser) return sendResponse(res, 404, false, null, 'Invalid Credentials')
 
         if(!getUser?.verified){
-            sendResponse(res, 403, false, getUser?.verified, 'Account is not yet verified')
+            //create cookies tredahuserid
+            res.cookie('tredahuserid', getUser?.userId, {
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            });
+            sendResponse(res, 403, false, { verified: getUser?.verified }, 'Account is not yet verified')
             return
         }
         if(getUser?.isBlocked){
-            sendResponse(res, 403, false, 'Account has been blocked')
+            sendResponse(res, 403, false, null, 'Account has been blocked')
             return
         }
 
@@ -429,7 +436,7 @@ export async function login(req, res) {
             const timeDiff = Date.now() - new Date(getUser.temporaryAccountBlockTime).getTime();
             if (timeDiff < SUSPENSION_TIME) {
                 const remainingTime = Math.ceil((SUSPENSION_TIME - timeDiff) / (60 * 1000)); // in minutes
-                return sendResponse(res, 403, false, `Account temporarily blocked. Try again in ${remainingTime} minutes.`);
+                return sendResponse(res, 403, false, null, `Account temporarily blocked. Try again in ${remainingTime} minutes.`);
             } else {
                 // Reset suspension if time has passed
                 getUser.accountSuspended = false;
@@ -455,9 +462,9 @@ export async function login(req, res) {
                 getUser.accountSuspended = true
                 getUser.temporaryAccountBlockTime = new Date(); // Set suspension start time
                 await getUser.save();
-                return sendResponse(res, 403, false, `Too many failed attempts. Your account is blocked for 6 hours.`);
+                return sendResponse(res, 403, false, null, `Too many failed attempts. Your account is blocked for 6 hours.`);
             } else {
-                return sendResponse(res, 403, false, 'Wrong email or password', `${MAX_LOGIN_ATTEMPTS - getUser.noOfLoginAttempts} login attempts left`)
+                return sendResponse(res, 403, false, null, 'Wrong email or password', `${MAX_LOGIN_ATTEMPTS - getUser.noOfLoginAttempts} login attempts left`)
             }
 
         } else {
@@ -582,12 +589,12 @@ export async function resetPassword(req, res) {
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex')
     const accountId = req.cookies.tredahuserid;
 
-    if(!password) return sendResponse(res, 400, false, 'password id required')
-    if(!confirmPassword) return sendResponse(res, 400, false, 'confirm password is required')
+    if(!password) return sendResponse(res, 400, false, null, 'password id required')
+    if(!confirmPassword) return sendResponse(res, 400, false, null, 'confirm password is required')
     const verifyPassword = await validatePassword(password)
     if(!verifyPassword.success) return sendResponse(res, 400, false, null, verifyPassword.message)
 
-    if(password !== confirmPassword) return sendResponse(res, 400, false, 'Password do not match')
+    if(password !== confirmPassword) return sendResponse(res, 400, false, null, 'Password do not match')
 
     if(!accountId) return sendResponse(res, 403, false, 'Not Allowed')
     try {
@@ -596,11 +603,11 @@ export async function resetPassword(req, res) {
             resetPasswordExpire: { $gt: Date.now()}
         })
 
-        if(!getUser) return sendResponse(res, 400, false, 'Invalid reset token')
+        if(!getUser) return sendResponse(res, 400, false, null, 'Invalid reset token')
         if(getUser.userId !== accountId) return sendResponse(res, 400, false, 'Not Allowed')
 
         const passwordMatch = await getUser.matchPassword(password)
-        if(passwordMatch) return sendResponse(res, 400, false, 'Old password must not match new password')
+        if(passwordMatch) return sendResponse(res, 400, false, null, 'Old password must not match new password')
         
         getUser.password = password
         getUser.resetPasswordToken = null
@@ -609,10 +616,10 @@ export async function resetPassword(req, res) {
 
         res.clearCookie(`tredahuserid`)
 
-        sendResponse(res, 201, true, 'Passowrd reset success')
+        sendResponse(res, 201, true, null, 'Passowrd reset success')
     } catch (error) {
         console.log('UNABLE TO RESET USER PASSWORD', error)
-        sendResponse(res, 500, false, 'Unable to reset user password')
+        sendResponse(res, 500, false, null, 'Unable to reset user password')
     }
 
 }
@@ -627,12 +634,12 @@ export async function verifyToken(req, res) {
                 const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
 
                 if (decoded.accountType !== 'user') {
-                    return sendResponse(res, 403, false, 'Unauthorized access');
+                    return sendResponse(res, 403, false, null, 'Unauthorized access');
                 }
 
                 const user = await UserModel.findOne({ userId: decoded.id });
-                if (!user) return sendResponse(res, 404, false, 'User not found');
-                if (!user.refreshToken) return sendResponse(res, 401, false, 'Unauthenticated');
+                if (!user) return sendResponse(res, 404, false, null, 'User not found');
+                if (!user.refreshToken) return sendResponse(res, 401, false, null, 'Unauthenticated');
 
                 // Remove sensitive data before sending the response
                 const { password, noOfLoginAttempts, temporaryAccountBlockTime, verified, accountSuspended, isBlocked, resetPasswordToken, resetPasswordExpire, subscriptionPriceId, subscriptionId, _id, ...userData } = user._doc;
@@ -641,27 +648,27 @@ export async function verifyToken(req, res) {
                 if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
                     return handleTokenRefresh(res, accountId);
                 }
-                return sendResponse(res, 401, false, 'Invalid token');
+                return sendResponse(res, 401, false, null, 'Invalid token');
             }
         } else if (accountId) {
             return handleTokenRefresh(res, accountId);
         }
 
-        return sendResponse(res, 401, false, 'Unauthenticated');
+        return sendResponse(res, 401, false, null, 'Unauthenticated');
     } catch (error) {
         console.error('UNABLE TO VERIFY TOKEN', error);
-        return sendResponse(res, 500, false, 'Unable to verify token');
+        return sendResponse(res, 500, false, null, 'Unable to verify token');
     }
 }
 
 async function handleTokenRefresh(res, accountId) {
-    if (!accountId) return sendResponse(res, 401, false, 'Unauthenticated');
+    if (!accountId) return sendResponse(res, 401, false, null, 'Unauthenticated');
 
     const user = await UserModel.findOne({ userId: accountId });
-    if (!user) return sendResponse(res, 404, false, 'User not found');
+    if (!user) return sendResponse(res, 404, false, null, 'User not found');
 
     const refreshTokenExist = await RefreshTokenModel.findOne({ accountId });
-    if (!refreshTokenExist) return sendResponse(res, 401, false, 'Invalid refresh token');
+    if (!refreshTokenExist) return sendResponse(res, 401, false, null, 'Invalid refresh token');
 
     const newAccessToken = user.getAccessToken();
     res.cookie('tredahtoken', newAccessToken, {
@@ -686,9 +693,9 @@ export async function signout(req, res) {
         res.clearCookie(`tredahtoken`)
         res.clearCookie(`tredahauthid`)
 
-        return sendResponse(res, 200, true, 'Signout success')
+        return sendResponse(res, 200, true, null, 'Signout success')
     } catch (error) {
         console.log('UNABLE TO SIGNOUT ACCOUNT', error)
-        return sendResponse(res, 500, false, 'Unable to process signout')
+        return sendResponse(res, 500, false, null, 'Unable to process signout')
     }
 }

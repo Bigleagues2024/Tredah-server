@@ -41,6 +41,10 @@ export async function updateStoreDetails(req, res) {
             storeData = newStore
         }
 
+        const getUser = await UserModel.findOne({ userId })
+        getUser.isStoreActive = true
+        await getUser.save()
+
         sendResponse(res, 201, true, storeData, 'Store information updated successful')
     } catch (error) {
         console.log('UNABLE TO UPDATE STORE DETAILS', error)
@@ -345,13 +349,19 @@ export async function autoDeactivateStore() {
     const expiredUserIds = expiredUsers.map((user) => user._id);
 
     // Deactivate all stores belonging to those users
-    const result = await StoreModel.updateMany(
+    const storeResult = await StoreModel.updateMany(
       { sellerId: { $in: expiredUserIds }, active: true },
       { $set: { active: false } }
     );
 
+    // Update users to reflect inactive store
+    const userResult = await UserModel.updateMany(
+      { _id: { $in: expiredUserIds }, isStoreActive: true },
+      { $set: { isStoreActive: false } }
+    );
+
     console.log(
-      `Auto-deactivation complete at ${now}: ${result.modifiedCount} store(s) deactivated`
+      `Auto-deactivation complete at ${now}: ${storeResult.modifiedCount} store(s) deactivated, ${userResult.modifiedCount} user(s) updated`
     );
   } catch (error) {
     console.error("UNABLE TO DEACTIVATE SCHEDULED STORE", error);

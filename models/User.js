@@ -59,7 +59,8 @@ const UserSchema = new mongoose.Schema({
         type: String
     },
     isStoreActive: {
-        type: Boolean
+        type: Boolean,
+        default: false
     },
     productCount: {
         type: Number,
