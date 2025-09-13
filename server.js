@@ -99,11 +99,12 @@ app.use('/api/api-doc', swaggerGeneralUI, swaggerUI.setup(swaggerGeneralJSDocs, 
 
 import { sendResponse } from "./middleware/utils.js";
 //SOCKET.IO
-/**GENERAL SOCKET */
 import { AuthenticateUserSocket } from "./middleware/auth/user-auth.js";
 
 import * as messageChat from './controllers/chat.controllers.js';
+import * as orderExchangeChat from './controllers/orderContractExchanges.controllers.js';
 
+/**GENERAL SOCKET */
 export const generalNamespace = io.of('/general');
 
 export const generalConnections = new Map()
@@ -131,12 +132,48 @@ generalNamespace.on('connection', (socket) => {
   //messageUpdated
   //messageDeleted
 
-
-  
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     if(userId){
       generalConnections.delete(userId)
+    }
+  });
+
+});
+
+
+/**ORDER SOCKET */
+export const orderNamespace = io.of('/order');
+
+export const orderConnections = new Map()
+
+// Apply socket-specific authentication middleware for order namespace
+orderNamespace.use(AuthenticateUserSocket);
+orderNamespace.on('connection', (socket) => {
+  console.log('USER CONNECTED:', socket.id);
+
+  const { userId } = socket.user
+
+  if(userId){
+    orderConnections.set(userId, socket.id)
+  }
+  console.log('CONNECTING USER ID TO ORDER NAMESPACE SOCKET ID', orderConnections)
+
+  //sockets for live call
+  socket.on('sendMessage', (data) => orderExchangeChat.sendMessage( data, socket )); //send message to user(either seller or buyer) (incomingMessage)
+  socket.on('getChatHistroy', (data) => orderExchangeChat.getChatHistroy( data, socket )); //get chat histroy a user chat with receiver
+  socket.on('editMessage', (data) => orderExchangeChat.editMessage( data, socket )); //update sent message ('messageUpdated)
+  //socket.on('deleteMessage', (data) => orderExchangeChat.deleteMessage( data, socket )); //delete sent message ('messageDeleted)
+  socket.on('getChats', (data) => orderExchangeChat.getChats( data, socket )); //user get chats history
+  //socket emits
+  //incomingMessage
+  //messageUpdated
+  //messageDeleted (removed)
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+    if(userId){
+      orderConnections.delete(userId)
     }
   });
 

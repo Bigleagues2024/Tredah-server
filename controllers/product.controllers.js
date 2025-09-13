@@ -1198,6 +1198,7 @@ export async function likeProduct(req, res) {
     try {
         const getProduct = await ProductModel.findOne({ productId });
         if (!getProduct) return sendResponse(res, 400, false, null, 'Product not found');
+        const getUser = await UserModel.findOne({ userId });
 
         const alreadyLiked = getProduct.likes.includes(userId);
         if (alreadyLiked) {
@@ -1206,6 +1207,9 @@ export async function likeProduct(req, res) {
 
         getProduct.likes.push(userId);
         await getProduct.save();
+
+        getUser.savedProducts.push(productId)
+        await getUser.save()
 
         sendResponse(res, 200, true, null, 'Like saved');
     } catch (error) {
@@ -1222,14 +1226,169 @@ export async function unlikeProduct(req, res) {
   try {
     const getProduct = await ProductModel.findOne({ productId });
     if (!getProduct) return sendResponse(res, 400, false, null, 'Product not found');
+    const getUser = await UserModel.findOne({ userId });
 
     // Remove the userId from the likes array
     getProduct.likes = getProduct.likes.filter(id => id !== userId);
     await getProduct.save();
 
+    // Remove the productId from the savedProducts array
+    getUser.likes = getUser.likes.filter(id => id !== productId);
+    await getUser.save();
+
     sendResponse(res, 200, true, null,  'Like removed');
   } catch (error) {
     console.log('UNABLE TO UNLIKE PRODUCT', error);
     sendResponse(res, 500, false, null, 'Unable to unlike product');
+  }
+}
+
+//get saved product
+export async function getSavedProduct(req, res) {
+  const userId = req?.user?.userId || false;
+  const savedProducts = req?.user?.savedProducts || [];
+
+  const {
+    limit = 10,
+    page = 1,
+    search,
+    category,
+    sellerId,
+    storeName,
+    oldest,
+    latest,
+    maxPrice,
+    minPrice,
+    popular,
+    discount,
+  } = req.query;
+
+  const parsedLimit = Number(limit);
+  const parsedPage = Number(page);
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  // Only fetch user's saved products
+  let baseQuery = { 
+    active: true, 
+    blocked: false, 
+    inStock: true,
+    productId: { $in: savedProducts }   // ✅ restrict to saved products
+  };
+
+  // Price filtering
+  if (minPrice && maxPrice) {
+    baseQuery.displayPrice = { $gte: Number(minPrice), $lte: Number(maxPrice) };
+  } else if (minPrice) {
+    baseQuery.displayPrice = { $gte: Number(minPrice) };
+  } else if (maxPrice) {
+    baseQuery.displayPrice = { $lte: Number(maxPrice) };
+  }
+
+  // Seller/store filters
+  if (sellerId) baseQuery.sellerId = sellerId;
+  if (storeName) baseQuery.storeName = storeName;
+
+  // Category filter
+  if (category) {
+    const categoryRegex = new RegExp(category, 'i');
+    baseQuery.$or = [
+      { 'category.name': categoryRegex },
+      { 'subCategory.name': categoryRegex },
+    ];
+  }
+
+  // Search filter
+  if (search) {
+    const regex = new RegExp(search, 'i');
+    baseQuery.$or = [
+      { name: regex },
+      { storeName: regex },
+      { productId: regex },
+      { 'category.name': regex },
+      { 'subCategory.name': regex }
+    ];
+  }
+
+  let products = [];
+  let total = 0;
+  let sortType = '';
+
+  try {
+    if (popular) {
+      products = await ProductModel.find(baseQuery)
+        .sort({ likes: -1 })
+        .skip(skip)
+        .limit(parsedLimit);
+      sortType = 'popular';
+    } else if (oldest) {
+      products = await ProductModel.find(baseQuery)
+        .sort({ createdAt: 1 })
+        .skip(skip)
+        .limit(parsedLimit);
+      sortType = 'oldest';
+    } else if (latest) {
+      products = await ProductModel.find(baseQuery)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parsedLimit);
+      sortType = 'latest';
+    } else {
+      // Mixed: oldest + latest combined
+      const halfLimit = Math.ceil(parsedLimit / 2);
+      const [oldProducts, newProducts] = await Promise.all([
+        ProductModel.find(baseQuery).sort({ createdAt: 1 }).limit(halfLimit),
+        ProductModel.find(baseQuery).sort({ createdAt: -1 }).limit(parsedLimit),
+      ]);
+
+      const productMap = new Map();
+      [...oldProducts, ...newProducts].forEach((product) => {
+        productMap.set(product.productId, product);
+      });
+
+      products = Array.from(productMap.values()).slice(skip, skip + parsedLimit);
+      sortType = 'mixed';
+    }
+
+    total = await ProductModel.countDocuments(baseQuery);
+
+    // Build simplified product list
+    const simplifiedProducts = await Promise.all(products.map(async (product) => {
+      const productId = product.productId;
+      const productReview = await ProductReviewModel.findOne({ productId });
+      const reviews = productReview?.reviews || [];
+      const rating = calculateAverageRating(reviews);
+      const totalReviews = reviews.length;
+
+      return {
+        productId: product.productId,
+        name: product.name,
+        image: product.mainImage,
+        imageArray: product.imageArray,
+        price: product.price,
+        storeName: product.storeName,
+        sellerId: product.sellerId,
+        discount: product.discountAllowed ? product.discount : null,
+        discountPercentage: product.discountPercentage || null,
+        discountedPrice: product.discountedPrice || null,
+        likes: product.likes?.length || 0,
+        liked: userId ? product.likes.includes(userId) : false,
+        rating,
+        totalReviews,
+      };
+    }));
+
+    // Final response
+    const responsePayload = {
+      data: simplifiedProducts,
+      totalCount: total,
+      currentPage: parsedPage,
+      totalPages: Math.ceil(total / parsedLimit),
+      sortType,
+    };
+
+    sendResponse(res, 200, true, responsePayload, `Saved products fetched`);
+  } catch (error) {
+    console.log('UNABLE TO GET SAVED PRODUCTS', error);
+    sendResponse(res, 500, false, null, 'Unable to get saved products');
   }
 }

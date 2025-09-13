@@ -1,4 +1,4 @@
-import { sendForgotPasswordEmail, sendNewLoginEmail, sendOtpEmail, sendWelcomeEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js";
+import { sendForgotPasswordEmail, sendNewLoginEmail, sendOtpEmail, sendPasswordOtpEmail, sendWelcomeEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js";
 import { generateOtp, generateUniqueCode, maskEmail, sendResponse, stringToNumberArray, validateAsianNumber, validateNigeriaNumber, validatePassword } from "../middleware/utils.js"
 import BuyerKycInfoModel from "../models/BuyerKycInfo.js";
 import OtpModel from "../models/Otp.js";
@@ -143,6 +143,32 @@ export async function resendOtp(req, res) {
     } catch (error) {
         console.log('UNABLE TO RESEND OTP CODE', error)
         sendResponse(res, 500, false, null, 'Unable to resend otp code')
+    }
+}
+
+//request otp
+export async function requestOtp(req, res) {
+    const { userId } = req.user
+
+    try {
+        const getUser = await UserModel.findOne({ userId: userId })
+        if(!getUser) return sendResponse(res, 404, false, null, 'User with this id does not exist')
+
+        //create otp and send to user
+        const getOtpCode = await generateOtp({  mobileNumber: getUser?.mobileNumber, email: getUser?.email, length: 4, accountType: 'user' })
+        const codeArray = stringToNumberArray(getOtpCode)
+        sendPasswordOtpEmail({
+            email: getUser?.email,
+            name: getUser?.name || 'User',
+            code: codeArray
+        })
+
+        //mask email address
+        const hideEmail = maskEmail(getUser?.email)
+        sendResponse(res, 200, true, hideEmail, `Enter the OTP sent to adbdulq*. ${hideEmail} to continue. The code will expire in 15min`)
+    } catch (error) {
+        console.log('UNABLE TO REQUEST OTP CODE', error)
+        sendResponse(res, 500, false, null, 'Unable to request otp code')
     }
 }
 
@@ -624,6 +650,7 @@ export async function resetPassword(req, res) {
 
 }
 
+//verify access token
 export async function verifyToken(req, res) {
     const accessToken = req.cookies.tredahtoken;
     const accountId = req.cookies.tredahauthid;

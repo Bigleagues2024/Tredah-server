@@ -242,6 +242,89 @@ export async function sendOtpEmail({
     }
   }
 
+export async function sendPasswordOtpEmail({
+    email,
+    name = "",
+    code = [],
+    buttonLink = "#",
+    buttonText = "",
+    title = "Tredah Verification OTP code",
+  }) {
+    if (!email) {
+      throw new Error("Email is required to send password OTP email.");
+    }
+  
+    const otpCodeHtml = code
+    .map(
+      (i) =>
+        `<div style="height: 64px; weight: 64px; display: flex; align-items: center; justify-content: center; border: 2px solid #004225; border-radius: 8px; padding: 2px 8px; font-weight: 500px; font-size: 48px; color: #004225; text-align: center; margin-left: 4px; margin-right: 4px;">
+        ${i}
+        </div>`
+    )
+    .join("");
+  
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+          <div style="display: flex; align-items: left; margin-bottom: 20px;">
+              <img src="${logourl}" alt="Logo" style="width: 100px; height: auto; margin-right: 20px;">
+          </div>
+          <br />
+          <br />
+          <p style="color: #000; font-size: 16px; font-weight: 400;">Hi ${name},</p>
+          <p style="color: #000; font-size: 16px; font-weight: 400;">
+             Use the OTP below to reset your password:
+          </p>
+  
+          <div style="display: flex; align-items: center; justify-content: center; gap: 8px;" >
+          ${otpCodeHtml}
+          </div>
+  
+          <br />
+            <p style="color: #000; font-size: 16px; font-weight: 400;">
+              Please verify OTP on the device that was used to register email address
+          </p>
+          <p style="color: #000; font-size: 16px; font-weight: 400;">
+              This code will only be valid for the next 15 minutes
+          </p>
+          <p style="color: #004225; font-size: 16px; font-weight: 600;">
+            Your Trusted Portal for Seamless Trade Between Nigeria and Asia
+          </p>
+          <p style="color: #004225; font-size: 14px; font-weight: 400;"><b>Best regards</b>,<br />Tredah Team</p>
+          <footer style="margin-top: 20px; font-size: 12px; color: #000;">
+              <p>This email was sent to <span style="color: 004225;">${email}</span>. If you prefer not to receive similar notifications, you can <a href="#" style="color: #004225;">unsubscribe</a> or <a href="#" style="color: #004225;">manage your email preferences</a>.</p>
+              <p style="text-align: center;">© ${currentYear} Tredah</p>
+              <br />
+              <div style="display: flex; gap: 40px; align-items: center; justify-content: space-between;">
+                <img src="${logourl}" alt="Logo" style="width: 80px; height: auto; margin-right: 20px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <a href="${twUrl}" style="text-decoration: none; color: inherit;">
+                    <img src=${twImg} style="width: 20px; height: auto; margin-left: 5px; margin-right: 5px;" />
+                  </a>
+                  <a href="${fbUrl}" style="text-decoration: none; color: inherit;">
+                    <img src=${fbImg} style="width: 20px; height: auto; margin-left: 5px; margin-right: 5px;" />
+                  </a>
+                  <a href="${igUrl}" style="text-decoration: none; color: inherit;">
+                    <img src=${igImg} style="width: 20px; height: auto; margin-left: 5px; margin-right: 5px;" />
+                  </a>
+                </div>
+              </div>
+          </footer>
+      </div>
+    `;
+  
+    try {
+      await sendEmail({
+        to: email,
+        subject: title,
+        html: emailContent,
+      });
+      console.log(`OTP email sent to ${email}`);
+    } catch (error) {
+      console.error(`Failed to send password OTP email to ${email}:`, error.message);
+      throw error;
+    }
+  }
+
   export async function sendNewLoginEmail({
     email,
     name = "",

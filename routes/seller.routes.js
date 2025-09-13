@@ -12,6 +12,8 @@ router.post('/updateStoreDetails', AuthenticateUser, AllowedUserType(['seller'])
 
 //post public
 router.post('/rateStore', AuthenticateUser, controllers.rateStore)
+router.post('/saveStore', AuthenticateUser, controllers.saveStore)
+router.post('/unfollowStore', AuthenticateUser, controllers.unfollowStore)
 
 //post methods admin
 router.post('/activateStore', AuthenticateAdmin, PermissionsRole(['seller', 'admin','superadmin']), controllers.activateStore)
@@ -20,8 +22,8 @@ router.post('/deactivateStore', AuthenticateAdmin, PermissionsRole(['seller', 'a
 
 //GET
 router.get('/getStoreReview/:sellerId', controllers.getStoreReview)
-
-router.get('/getStoreInfo/:sellerId', AuthenticateUser, controllers.getStoreInfo)
+router.get('/getStoreDetails/:sellerId', controllers.getStoreInfo)
+router.get('/getSavedStoreInfo', AuthenticateUser, controllers.getSavedStoreInfo)
 
 //get methods store endpoint
 router.get('/getStoreInfo', AuthenticateUser, AllowedUserType(['seller']), controllers.getAStoreInfo)

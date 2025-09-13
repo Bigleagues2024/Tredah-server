@@ -66,6 +66,14 @@ const UserSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    savedProducts: {
+        type: Array,
+        default: []
+    },
+    savedSeller: {
+        type: Array,
+        default: []
+    },
 
     /**SERVER ONLY */
     password: {

@@ -56,6 +56,8 @@ tags:
     description: Seller endpoint
   - name: General Socket
     description: Inter app chat features socket.io
+  - name: Order Socket
+    description: Chat for order contract exchange
 
 paths:
 #AUTH
@@ -358,6 +360,20 @@ paths:
         500:
           description: Server error
 
+  /auth/requestOtp:
+    post:
+      tags:
+        - Auth
+      summary: Request OTP code
+      description: Endpoint to enable user request OTP code for sensitive operations
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
 #UPLOAD
   /upload/:
     post:
@@ -410,6 +426,33 @@ paths:
               name:
                 type: string
               imageUrl:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /user/updatePassword:
+    post:
+      tags:
+        - User
+      summary: Update password
+      description: Endpoint for user to update their password
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            properties:
+              otp:
+                type: string
+              password:
+                type: string
+              oldPassword:
                 type: string
       responses:
         200:
@@ -1832,6 +1875,91 @@ paths:
         500: 
           description: server error
 
+  /product/getSavedProduct:
+    get:
+      tags:
+        - Product
+      summary: Get user saved product
+      description: The endpoint list of all available user saved products
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+        - name: category
+          in: query
+          required: false
+          description: Search based on category
+          schema:
+            type: string
+        - name: sellerId
+          in: query
+          required: false
+          description: Search based on sellerId
+          schema:
+            type: string
+        - name: storeName
+          in: query
+          required: false
+          description: Search based on store name
+          schema:
+            type: string
+        - name: oldest
+          in: query
+          required: false
+          description: Filter based on oldest product
+          schema:
+            type: string
+        - name: latest
+          in: query
+          required: false
+          description: Filter based on lastest
+          schema:
+            type: boolean
+            example: false
+        - name: maxPrice
+          in: query
+          required: false
+          description: Filter based max price range
+          schema:
+            type: number
+            example: 100
+        - name: minPrice
+          in: query
+          required: false
+          description: Filter based min price range
+          schema:
+            type: number
+            example: 100
+        - name: popular
+          in: query
+          required: false
+          description: Filter based on popular product
+          schema:
+            type: boolean
+            example: false
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
 #SELLER
   /seller/updateStoreDetails:
     post:
@@ -1891,6 +2019,60 @@ paths:
                 min: 1
                 max: 5
               review: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /seller/saveStore:
+    post:
+      tags:
+        - Seller
+      summary: Save seller
+      description: Endpoint to save store front by users
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - sellerId
+            properties:
+              sellerId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /seller/unfollowStore:
+    post:
+      tags:
+        - Seller
+      summary: unsave/unfollow seller
+      description: Endpoint to unsave/unfollow store front by users
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - sellerId
+            properties:
+              sellerId:
                 type: string
       responses:
         200:
@@ -1987,7 +2169,7 @@ paths:
         500: 
           description: server error
 
-  /seller/getStoreInfo/{sellerId}:
+  /seller/getStoreDetails/{sellerId}:
     get:
       tags:
         - Seller
@@ -2074,6 +2256,33 @@ paths:
           in: path
           required: true
           description: sellerId of the product
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /seller/getSavedStoreInfo:
+    get:
+      tags:
+        - Seller
+      summary: Get all saved store of a user
+      description: The endpoint provides all saved and active store of a user
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
           schema:
             type: string
       responses:
@@ -2208,7 +2417,145 @@ paths:
       parameters:
         - in: body
           name: body
+          required: false
+          schema:
+            type: object
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+#ORDER SOCKET CONNECTIONS
+  /order:
+    post:
+      tags:
+        - Order Socket
+      summary: SOCKET.IO CONNECTION (SEND MESSAGE) socket.on(sendMessage, data) response- socket.emit(sendMessage, response) - RESPONSE TO OTHER USER socket.emit(incomingMessage, response)
+      description: This is a socket.io connection to send message specific to order (order contracts and documents) under the /order namespace
+      parameters:
+        - in: body
+          name: body
           required: true
+          schema:
+            type: object
+            required:
+              - receiverId
+              - orderId
+            properties:
+              orderId:
+                type: string
+              receiverId:
+                type: string
+              message: 
+                type: string
+              mediaLink: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /order/:
+    post:
+      tags:
+        - Order Socket
+      summary: SOCKET.IO CONNECTION (GET CHAT HISTROY) socket.on(getChatHistroy, data) response- socket.emit(getChatHistroy, response)
+      description: This is a socket.io connection to get a single order message chat under the /order namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - orderId
+            properties:
+              orderId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /order//:
+    post:
+      tags:
+        - Order Socket
+      summary: SOCKET.IO CONNECTION (EDIT MESSAGE) socket.on(editMessage, data) response- socket.emit(editMessage, response) - RESPONSE TO OTHER USER socket.emit(messageUpdated, response)
+      description: This is a socket.io connection to edit order contact message under the /order namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - contractId
+              - messageId
+            properties:
+              contractId:
+                type: string
+              messageId:
+                type: string
+              newMessage: 
+                type: string
+              mediaLink: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /order//:
+    post:
+      tags:
+        - Order Socket
+      summary: SOCKET.IO CONNECTION (DELETE CHAT HISTROY) socket.on(deleteMessage, data) response- socket.emit(deleteMessage, response) - RESPONSE TO OTHER USER socket.emit(messageDeleted, response)
+      description: This is a socket.io connection to delete order message under the /order namespace
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - contractId
+              - messageId
+            properties:
+              chatId:
+                type: string
+              messageId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /order///:
+    post:
+      tags:
+        - Order Socket
+      summary: SOCKET.IO CONNECTION (GET CHAT CONTACT HISTROY) socket.on(getChats, data) response- socket.emit(getChats, response)
+      description: This is a socket.io connection to get chat order contact histroy the /order namespace
+      parameters:
+        - in: body
+          name: body
+          required: false
           schema:
             type: object
       responses:

@@ -1,8 +1,9 @@
 import { sendAccountActivationEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js"
-import { sendResponse } from "../middleware/utils.js"
+import { sendResponse, validatePassword } from "../middleware/utils.js"
 import AdminNotificationModel from "../models/AdminNotification.js"
 import BuyerKycInfoModel from "../models/BuyerKycInfo.js"
 import NotificationModel from "../models/Notification.js"
+import OtpModel from "../models/Otp.js"
 import ProductModel from "../models/Product.js"
 import SellerKycInfoModel from "../models/SellerKycInfo.js"
 import ShippingAddressModel from "../models/ShippingAddress.js"
@@ -178,6 +179,38 @@ export async function updateProfile(req, res) {
     } catch (error) {
         console.log('UNABLE TO UPDATE USER ACCOUNT', error)
         sendResponse(res, 500, false, null, 'Unable to update account')        
+    }
+}
+
+//update account password
+export async function updatePassword(req, res) {
+    const { userId, mobileNumber } = req.user
+    const { otp, password, oldPassword } = req.body
+    if(!otp) return sendResponse(res, 400, false, null, 'Otp is required')
+    if(!password) return sendResponse(res, 400, false, null, 'Password is required')
+
+    try {
+        const getOtp = await OtpModel.findOne({ mobileNumber, otp })
+        if(!getOtp) return sendResponse(res, 400, false, null, 'Invalid Otp')
+
+        const verifyPassword = await validatePassword(password)
+        if(!verifyPassword.success) return sendResponse(res, 400, false, null, verifyPassword.message)
+        const getUser = await UserModel.findOne({ userId })
+        
+        //verify old password
+        const validateOldPassword = await getUser.matchPassword(oldPassword)
+        if(!validateOldPassword) return sendResponse(res, 400, false, null, 'Old password is incorrect')
+
+        const validateNewPassword = await getUser.matchPassword(password)
+        if(validateNewPassword) return sendResponse(res, 400, false, null, 'Please use a different new password')
+
+        getUser.password = password
+        await getUser.save()
+        
+        sendResponse(res, 200, true, null, 'Password updated successful')
+    } catch (error) {
+        console.log('UNABLE TO UPDATE PASSWORD', error)
+        sendResponse(res, 500, false, null, 'Unable to update password')
     }
 }
 

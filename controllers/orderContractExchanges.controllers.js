@@ -1,4 +1,4 @@
-import ChatModel from "../models/Chat.js"
+import OrderContractExchangesModel from "../models/OrderContractExchanges.js"
 import UserModel from "../models/User.js"
 import path from "path";
 import { URL } from "url";
@@ -15,7 +15,7 @@ export async function getChats({ socket = {}, data = {} }) {
     // get all chats where this user is either the seller or buyer
     const query = isSeller ? { sellerId: userId } : { buyerId: userId };
 
-    const chats = await ChatModel.find(query)
+    const chats = await OrderContractExchangesModel.find(query)
       .sort({ updatedAt: -1 }) // sort latest updated chats first
       .lean();
 
@@ -36,7 +36,7 @@ export async function getChats({ socket = {}, data = {} }) {
           : null;
 
       return {
-        chatId: chat.chatId,
+        contractId: chat.contractId,
         buyerId: chat.buyerId,
         sellerId: chat.sellerId,
         lastMessage,
@@ -61,16 +61,16 @@ export async function getChats({ socket = {}, data = {} }) {
 //get a chat history
 export async function getChatHistroy({ socket = {}, data = {} }) {
     const { userId, userType } = socket.user
-    const { chatId } = data
+    const { orderId } = data
     const isSeller = userType.toLowerCase() === "seller" ? true : false;
 
-    if(!chatId) {
-        socket.emit('getChatHistroy', { success: false, data: null, message: 'Chat Id is required' })
+    if(!orderId) {
+        socket.emit('getChatHistroy', { success: false, data: null, message: 'Order Id is required' })
         return
     }
 
     try {
-        const getChatHistroyData = await ChatModel.findOne({ chatId })
+        const getChatHistroyData = await OrderContractExchangesModel.findOne({ orderId })
         if(!getChatHistroyData) return socket.emit('getChatHistroy', { success: false, data: null, message: 'Chat not found' })
         if(isSeller){
             if(getChatHistroyData.sellerId !== userId) return socket.emit('getChatHistroy', { success: false, data: null, message: 'Not allowed'})
@@ -88,8 +88,17 @@ export async function getChatHistroy({ socket = {}, data = {} }) {
 //message a user
 export async function sendMessage({ socket = {}, data = {} }) {
   const { userId: senderId, userType, name, profileImg } = socket.user;
-  const { receiverId, message, mediaLink } = data;
+  const { orderId, receiverId, message, mediaLink } = data;
   const isSeller = userType.toLowerCase() === "seller" ? true : false;
+  
+  if (!orderId) {
+    socket.emit("sendMessage", {
+      success: false,
+      data: null,
+      message: "Order id is required/cannot be blank",
+    });
+    return;
+  }
 
   if (!message && !mediaLink) {
     socket.emit("sendMessage", {
@@ -157,15 +166,16 @@ export async function sendMessage({ socket = {}, data = {} }) {
     let sellerId = isSeller ? senderId : receiverId;
     let buyerId = !isSeller ? senderId : receiverId;
 
-    let chatHistory = await ChatModel.findOne({ sellerId, buyerId });
+    let chatHistory = await OrderContractExchangesModel.findOne({ sellerId, buyerId, orderId });
     if (chatHistory) {
       chatHistory.chats.unshift(messagData);
       await chatHistory.save();
     } else {
         const generateCode = generateUniqueCode(10)
-        const chatId = `TRH${generateCode}CHT`
-      chatHistory = await ChatModel.create({
-        chatId,
+        const contractId = `TRH${generateCode}CHT`
+      chatHistory = await OrderContractExchangesModel.create({
+        contractId,
+        orderId,
         sellerId,
         buyerId,
         chats: [messagData],
@@ -176,7 +186,7 @@ export async function sendMessage({ socket = {}, data = {} }) {
     await NotificationModel.create({
         userId: receiverId,
         image: profileImg,
-        notificationType: `New message from ${name} (${isSeller ? 'Seller' : 'Buyer'})`,
+        notificationType: `New message from ${name} (${isSeller ? 'Seller' : 'Buyer'}) on order chat order: ${orderId}`,
     })
 
     //notify receiver
@@ -203,21 +213,21 @@ export async function sendMessage({ socket = {}, data = {} }) {
 //edit a message
 export async function editMessage({ socket = {}, data = {} }) {
   const { userId } = socket.user;
-  const { chatId, messageId, newMessage } = data;
+  const { contractId, messageId, newMessage } = data;
 
-  if (!chatId || !messageId || !newMessage) {
+  if (!contractId || !messageId || !newMessage) {
     socket.emit("editMessage", {
       success: false,
       data: null,
-      message: "chatId, messageId and newMessage are required",
+      message: "contractId, messageId and newMessage are required",
     });
     return;
   }
 
   try {
     // Find the chat and the specific message, then update message and editedAt
-    const chatHistory = await ChatModel.findOneAndUpdate(
-      { chatId, "chats._id": messageId, "chats.senderId": userId },
+    const chatHistory = await OrderContractExchangesModel.findOneAndUpdate(
+      { contractId, "chats._id": messageId, "chats.senderId": userId },
       { 
         $set: { 
           "chats.$.message": newMessage,
@@ -264,21 +274,21 @@ export async function editMessage({ socket = {}, data = {} }) {
 // delete a message
 export async function deleteMessage({ socket = {}, data = {} }) {
   const { userId } = socket.user;
-  const { chatId, messageId } = data;
+  const { contractId, messageId } = data;
 
-  if (!chatId || !messageId) {
+  if (!contractId || !messageId) {
     socket.emit("deleteMessage", {
       success: false,
       data: null,
-      message: "chatId and messageId are required",
+      message: "contractId and messageId are required",
     });
     return;
   }
 
   try {
     // Remove the message if it belongs to the user
-    const chatHistory = await ChatModel.findOneAndUpdate(
-      { chatId, "chats._id": messageId, "chats.senderId": userId },
+    const chatHistory = await OrderContractExchangesModel.findOneAndUpdate(
+      { contractId, "chats._id": messageId, "chats.senderId": userId },
       { $pull: { chats: { _id: messageId } } },
       { new: true }
     );
@@ -305,7 +315,7 @@ export async function deleteMessage({ socket = {}, data = {} }) {
     if (receiverSocketId) {
       generalNamespace
         .to(receiverSocketId)
-        .emit("messageDeleted", { success: true, data: { chatId, messageId } });
+        .emit("messageDeleted", { success: true, data: { contractId, messageId } });
     }
   } catch (error) {
     console.error("UNABLE TO DELETE MESSAGE", error);

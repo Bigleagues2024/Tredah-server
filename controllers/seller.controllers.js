@@ -157,7 +157,6 @@ export async function getStoreInfo(req, res) {
             accountId,
             sellerAccountType,
             nin,
-            address,
             businessRegistrationNumber,
             taxId,
             isActive,
@@ -178,6 +177,141 @@ export async function getStoreInfo(req, res) {
         console.log('UNABLE TO GET SELLER INFOMATION', error)
         sendResponse(res, 500, false, null, 'Unable to get store info')
     }
+}
+
+//get saved store front
+export async function getSavedStoreInfo(req, res) {
+  const { savedSeller = [] } = req.user;
+  const { limit = 10, page = 1 } = req.query;
+
+  const parsedLimit = Number(limit);
+  const parsedPage = Number(page);
+  const skip = (parsedPage - 1) * parsedLimit;
+
+  try {
+    if (!savedSeller.length) {
+      return sendResponse(res, 200, true, {
+        data: [],
+        totalCount: 0,
+        currentPage: parsedPage,
+        totalPages: 0,
+      }, 'No saved stores found');
+    }
+
+    // Get stores
+    const stores = await StoreModel.find({
+      sellerId: { $in: savedSeller },
+      active: true
+    })
+      .select('-__v -_id')
+      .skip(skip)
+      .limit(parsedLimit);
+
+    const total = await StoreModel.countDocuments({
+      sellerId: { $in: savedSeller },
+      active: true
+    });
+
+    // Build detailed store info
+    const enrichedStores = await Promise.all(stores.map(async (store) => {
+      const getInfoData = store.toObject();
+
+      // Fetch Seller KYC info
+      const getAccountId = await SellerKycInfoModel.findOne({ accountId: store.sellerId })
+        .select('-__v -_id -approved -active -userId');
+
+      let getSellerData = getAccountId ? getAccountId.toObject() : {};
+      const {
+        accountId,
+        sellerAccountType,
+        nin,
+        businessRegistrationNumber,
+        taxId,
+        isActive,
+        ...filteredData
+      } = getSellerData;
+
+      getSellerData = filteredData;
+
+      // Rating
+      const reviews = store?.reviews || [];
+      const rating = calculateAverageRating(reviews);
+      const totalReviews = reviews.length;
+
+      return {
+        ...getInfoData,
+        ...getSellerData,
+        rating,
+        totalReviews
+      };
+    }));
+
+    // Response
+    const responsePayload = {
+      data: enrichedStores,
+      totalCount: total,
+      currentPage: parsedPage,
+      totalPages: Math.ceil(total / parsedLimit),
+    };
+
+    sendResponse(res, 200, true, responsePayload, 'Saved stores fetched successfully');
+  } catch (error) {
+    console.log('UNABLE TO GET USER SAVED STORES', error);
+    sendResponse(res, 500, false, null, 'Unable to get user saved stores');
+  }
+}
+
+//save/follow a store 
+export async function saveStore(req, res) {
+    const { userId } = req.user;
+    const { sellerId } = req.body;
+
+    try {
+        const getSeller = await StoreModel.findOne({ sellerId, active: true });
+        if (!getSeller) return sendResponse(res, 400, false, null, 'Seller not found');
+        const getUser = await UserModel.findOne({ userId });
+
+        const alreadyfollowed = getSeller.followers.includes(userId);
+        if (alreadyfollowed) {
+            return sendResponse(res, 400, false, null, 'Store saved');
+        }
+
+        getSeller.followers.push(userId);
+        await getSeller.save();
+
+        getUser.savedSeller.push(sellerId)
+        await getUser.save()
+
+        sendResponse(res, 200, true, null, 'Store saved');
+    } catch (error) {
+        console.log('UNABLE TO FOLLOW STORE', error);
+        sendResponse(res, 500, false, null, 'Unable to save store');
+    }
+}
+
+//unsave/unfollow a store
+export async function unfollowStore(req, res) {
+  const { userId } = req.user;
+  const { sellerId } = req.body;
+
+  try {
+    const getSeller = await StoreModel.findOne({ sellerId, active: true });
+    if (!getSeller) return sendResponse(res, 400, false, null, 'Seller not found');
+    const getUser = await UserModel.findOne({ userId });
+
+    // Remove the userId from the followers array
+    getSeller.followers = getSeller.followers.filter(id => id !== userId);
+    await getSeller.save();
+
+    // Remove the sellerId from the savedSeller array
+    getUser.savedSeller = getUser.savedSeller.filter(id => id !== sellerId);
+    await getUser.save();
+
+    sendResponse(res, 200, true, null,  'Store removed');
+  } catch (error) {
+    console.log('UNABLE TO UNFOLLOW STORE', error);
+    sendResponse(res, 500, false, null, 'Unable to remove Store');
+  }
 }
 
 //get all store front (admin)

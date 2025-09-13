@@ -9,6 +9,9 @@ const NotificationSchema = new mongoose.Schema({
     notification: {
         type: String
     },
+    image: {
+        type: String
+    },
     read: {
         type: Boolean,
         default: false

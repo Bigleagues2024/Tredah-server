@@ -32,6 +32,7 @@ router.get('/getStoreProducts/:sellerId', controllers.getStoreProducts)
 router.get('/getProduct/:productId', controllers.getProduct)
 router.get('/getRelatedProduct/:productId', controllers.getRelatedProduct)
 router.get('/getProductReview/:productId', controllers.getProductReview)
+router.get('/getSavedProduct', AuthenticateUser, controllers.getSavedProduct)
 
 //get methods store
 router.get('/getStoreProduct', AuthenticateUser, AllowedUserType(['seller']), controllers.getSellerProducts) //for store owner get all products

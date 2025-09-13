@@ -16,6 +16,7 @@ router.post('/forgotPassword', getLocation, controllers.forgotPassword)
 router.post('/resetPassword/:resetToken', getLocation, controllers.resetPassword)
 router.post('/googleAuth', getLocation, controllers.googleAuth)
 router.post('/signout', AuthenticateUser, controllers.signout)
+router.post('/requestOtp', AuthenticateUser, controllers.requestOtp)
 
 //GET
 router.get('/verifyToken', AuthenticateUser, controllers.verifyToken)

@@ -15,6 +15,7 @@ router.post('/markAllNotificationAsRead', AuthenticateUser, controllers.markAllN
 router.post('/addShippingAddres', AuthenticateUser, controllers.addShippingAddres)
 router.post('/editShippingAddres', AuthenticateUser, controllers.editShippingAddres)
 router.post('/deleteShippingAddres', AuthenticateUser, controllers.deleteShippingAddres)
+router.post('/updatePassword', AuthenticateUser, controllers.updatePassword)
 
 //post methods admin
 //router.post('/approveAccount', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.approveAccount)

@@ -1,0 +1,47 @@
+import mongoose from "mongoose";
+
+const TransactionSchema = new mongoose.Schema({
+    transactionId: {
+        type: String,
+        required: [ true, 'Transaction Id is required' ],
+        unique: [ true, 'Transaction Id must be unique' ]   
+    },
+    orderId: {
+        type: String,
+        required: [ true, 'Order Id is required' ]
+    },
+    buyerId: {
+        type: String,
+        required: [ true, 'User Id is required' ]
+    },
+    sellerId: {
+        type: String,
+        required: [ true, 'Seller Id is required' ]
+    },
+    amount: {
+        type: Number,
+        required: [ true, 'Amount is required' ]
+    },
+    transactionStatus: {
+        type: String,
+        enum: ['Pending', 'Completed', 'Failed', 'Cancelled'],
+        default: 'Pending'
+    },
+    success: {
+        type: Boolean,
+        default: false,
+    },
+    paymentMethod: {
+        type: String
+    },
+    paymentStatus: {
+        type: String,
+        default: 'Pending',
+        enum: ['Pending', 'Escrow', 'Released', 'Requested Refund', 'Refunded'],
+    }
+},
+{ timestamps: true }
+)
+
+const TransactionModel = mongoose.model('transaction', TransactionSchema)
+export default TransactionModel
