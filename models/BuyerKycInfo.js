@@ -8,7 +8,7 @@ const BuyerKycInfoSchema = new mongoose.Schema({
     },
     buyerAccountType: {
         type: String,
-        enum: ['B2B', 'B2C']
+        enum: ['business', 'personal']
     },
     address: {
         type: String

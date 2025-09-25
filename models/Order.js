@@ -14,6 +14,9 @@ const OrderSchema = new mongoose.Schema({
         type: String,
         required: [ true, 'Buyer Id is required'],
     },
+    buyerEmail: {
+        type: String
+    },
     amountAtPurchase: {
         type: Number
     },

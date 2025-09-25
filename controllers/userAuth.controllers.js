@@ -11,7 +11,7 @@ import crypto from 'crypto'
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const userTypeOptions = ['seller', 'buyer']
 const sellerAccountTypeOptions = ['personal', 'business']
-const buyerAccountTypeOptions = ['B2B', 'B2C']
+const buyerAccountTypeOptions = ['business', 'personal']
 
 const MAX_LOGIN_ATTEMPTS = 4
 const SUSPENSION_TIME = 6 * 60 * 60 * 1000
@@ -353,8 +353,8 @@ export async function completeBuyerOnboarding(req, res) {
         const getBuyer = await BuyerKycInfoModel.findOne({ accountId: getUser?.userId })
         if(!getBuyer) return sendResponse(res, 404, false, null, 'Buyer account does not exist')
         
-        //business account type is b2b verify business info
-        if(buyerAccountType && buyerAccountType === 'B2B' || getBuyer?.buyerAccountType === 'B2B'){
+        //business account type is business verify business info
+        if(buyerAccountType && buyerAccountType === 'business' || getBuyer?.buyerAccountType === 'business'){
             if(!companyName) return sendResponse(res, 400, false, null, 'Company name is required')
             if(!businessType) return sendResponse(res, 400, false, null, 'Business Type is required')
             if(!businessRegistrationNumber) return sendResponse(res, 400, false, null, 'Business Registration number is required')

@@ -227,10 +227,10 @@ export async function updateBuyerInfo(req, res) {
         if(!getUser) return sendResponse(res, 404, false, null, 'Account not found')
         const getBuyer = await BuyerKycInfoModel.findOne({ accountId: userId })
         if(!getBuyer) return sendResponse(res, 404, false, null, 'Account not found')
-        if(getBuyer.buyerAccountType === 'B2C'){
-            if(buyerAccountType === 'B2B') {
+        if(getBuyer.buyerAccountType === 'personal'){
+            if(buyerAccountType === 'business') {
                 if(!businessRegistrationNumber && !getBuyer.businessRegistrationNumber) {
-                    return sendResponse(res, 400, false, null, 'Provide Business registration number to change to B2B')
+                    return sendResponse(res, 400, false, null, 'Provide Business registration number to change to business')
                 }
             }
         }
