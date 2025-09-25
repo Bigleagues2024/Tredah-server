@@ -23,7 +23,7 @@ const OrderSchema = new mongoose.Schema({
     companyNameAtPurchase: {
         type: String
     },
-    totalAmount: {
+    totalPayableAmount: {
         type: Number
     },
     productId: {
@@ -42,6 +42,10 @@ const OrderSchema = new mongoose.Schema({
     paymentStatus: {
         type: String,
         default: 'Pending',
+    },
+    isPaid: {
+        type: Boolean,
+        default: false
     },
     completed: {
         type: Boolean,

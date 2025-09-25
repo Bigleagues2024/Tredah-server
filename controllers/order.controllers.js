@@ -1,17 +1,360 @@
-import OrderModel from "../models/OrderModel.js";
-import { sendResponse } from "../middleware/utils.js";
+import OrderModel from "../models/Order.js";
+import { generateUniqueCode, sendResponse } from "../middleware/utils.js";
+import ProductModel from "../models/Product.js";
+import UserModel from "../models/User.js";
+import SellerKycInfoModel from "../models/SellerKycInfo.js";
+import NotificationModel from "../models/Notification.js";
 
 //new order
+export async function newOrder(req, res) {
+    const { userId: sellerId, name } = req.user
+    const { buyerEmail, amount, productId, quantity } = req.body
+    if(!buyerEmail) return sendResponse(res, 400, false, null, 'Buyer Email address is required')
+    if(!amount) return sendResponse(res, 400, false, null, 'Amount is required')
+    if(typeof amount !== 'number') return sendResponse(res, 400, false, null, 'Amount must be a number')
+    if(!productId) return sendResponse(res, 400, false, null, 'Product Id is required')
+    if(!quantity) return sendResponse(res, 400, false, null, 'Quantity is required')
+    if(typeof quantity !== 'number') return sendResponse(res, 400, false, null, 'Quantity must be a number')
 
-//edit order before payment is made
+    try {
+        //check if product exist
+        const productExist = await ProductModel.findOne({ productId })
+        if(!productExist) return sendResponse(res, 404, false, null, 'Product does not exist')
+        
+        //check if buyer email is valid and exist
+        const getUser = await UserModel.findOne({ email: buyerEmail })
+        if(!getUser) return sendResponse(res, 404, false, null, 'Buyer Email does not exist')
+        if(getUser.userType !== 'buyer') return sendResponse(res, 400, false, null, 'This email belongs to a non-buyer account. Please use a buyer account.')
+        
+        //get seller info
+        const getSellerInfo = await SellerKycInfoModel.findOne({ accountId: sellerId })
+
+        const newOrderId = await generateUniqueCode(9)
+        const orderId = `TRH${newOrderId}ORD`
+
+        const order = await OrderModel.create({
+            orderId,
+            sellerId,
+            buyerId: getUser.userId,
+            buyerEmail,
+            amountAtPurchase: amount,
+            companyNameAtPurchase: getSellerInfo?.companyName || name,
+            productId,
+            quantity,
+        })
+
+        //notify buyer
+        await NotificationModel.create({ 
+            userId: getUser.userId,
+            notification: `A new order invoice has been sent to you by ${getSellerInfo?.companyName || name}. Order Id: ${orderId}`
+        })
+        //notify seller
+        await NotificationModel.create({
+            userId: sellerId,
+            notification: `Order Invoice ${orderId} has been created and sent to ${getUser?.name}.`
+        })
+
+        sendResponse(res, 201, true, order, 'Order Invoice created successful')
+    } catch (error) {
+        console.log('UNABLE TO CREATE A NEW ORDER', error)
+        sendResponse(res, 500, false, null, 'Unable to create new order')
+    }
+}
+
+//edit order only before payment is made
+export async function editOrder(req, res) {
+    const { userId: sellerId, name } = req.user
+    const { orderId, buyerEmail, amount, productId, quantity } = req.body
+    if(!orderId) return sendResponse(res, 400, false, null, 'Order is required')
+    if(amount) {
+        if(typeof amount !== 'number') return sendResponse(res, 400, false, null, 'Amount must be a number')
+    }
+    if(quantity) {
+        if(typeof quantity !== 'number') return sendResponse(res, 400, false, null, 'Quantity must be a number')
+    }
+
+    try {
+        const getOrder = await OrderModel.findOne({ orderId })
+        if(!getOrder) return sendResponse(res, 404, false, null, 'Order with this Id not found')
+        if(getOrder.isPaid) return sendResponse(res, 400, false, null, 'This order has already been paid for and cannot be edited.')
+
+        if(productId) {
+            //check if product exist
+            const productExist = await ProductModel.findOne({ productId })
+            if(!productExist) return sendResponse(res, 404, false, null, 'Product does not exist')    
+        }
+        
+        if(buyerEmail) {
+            //check if buyer email is valid and exist
+            const getUser = await UserModel.findOne({ email: buyerEmail })
+            if(!getUser) return sendResponse(res, 404, false, null, 'Buyer Email does not exist')
+            if(getUser.userType !== 'buyer') return sendResponse(res, 400, false, null, 'This email belongs to a non-buyer account. Please use a buyer account.')
+        }
+        //get seller info
+        const getSellerInfo = await SellerKycInfoModel.findOne({ accountId: sellerId })
+
+        if(buyerEmail) getOrder.buyerId = getUser.userId
+        if(buyerEmail) getOrder.buyerEmail = buyerEmail
+        if(amount) getOrder.amount = amountAtPurchase
+        getOrder.companyNameAtPurchase = getSellerInfo?.companyName || name
+        if(productId) getOrder.productId = productId
+        if(quantity) getOrder.quantity = quantity
+        
+        await getOrder.save()
+
+        //notify buyer
+        await NotificationModel.create({ 
+            userId: getUser.userId,
+            notification: `Order ${orderId} has been updated by ${getSellerInfo?.companyName || name}.`
+        })
+        //notify seller
+        await NotificationModel.create({
+            userId: sellerId,
+            notification: `Order Invoice ${orderId} has been updated and sent to ${getUser?.name}.`
+        })
+
+        sendResponse(res, 201, true, getOrder, 'Order Invoice updated successful')
+    } catch (error) {
+        console.log('UNABLE TO UPDATE ORDER', error)
+        sendResponse(res, 500, false, null, 'Unable to update order')
+    }
+}
 
 //get all orders of a (buyer or seller)
+export async function getordersHistory(req, res) {
+    const { userId, userType } = req.user;
+    const isSeller = userType.toLowerCase() === "seller";
+
+    const {
+        limit = 10,
+        page = 1,
+        status,
+        period,
+        start, 
+        end, 
+        days
+    } = req.query;
+
+    try {
+        const query = {};
+
+        // filter by user type
+        if (isSeller) {
+            query.sellerId = userId;
+        } else {
+            query.buyerId = userId;
+        }
+
+        //  filter by paymentStatus if provided
+        if (status) {
+            query.status = status;
+        }
+
+        // ✅ date filtering
+        let dateFilter = {};
+        const now = new Date();
+
+        switch (period) {
+            case "today":
+                dateFilter = {
+                    $gte: new Date(now.setHours(0, 0, 0, 0)),
+                    $lte: new Date()
+                };
+                break;
+            case "week":
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                dateFilter = { $gte: weekAgo, $lte: new Date() };
+                break;
+            case "month":
+                const monthAgo = new Date();
+                monthAgo.setMonth(monthAgo.getMonth() - 1);
+                dateFilter = { $gte: monthAgo, $lte: new Date() };
+                break;
+            case "year":
+                const yearAgo = new Date();
+                yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+                dateFilter = { $gte: yearAgo, $lte: new Date() };
+                break;
+            case "custom":
+                if (days) {
+                    const from = new Date();
+                    from.setDate(from.getDate() - parseInt(days));
+                    dateFilter = { $gte: from, $lte: new Date() };
+                } else if (start && end) {
+                    dateFilter = {
+                        $gte: new Date(start),
+                        $lte: new Date(end)
+                    };
+                }
+                break;
+            case "all":
+            default:
+                break;
+        }
+
+        if (Object.keys(dateFilter).length > 0) {
+            query.createdAt = dateFilter;
+        }
+
+        // ✅ pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const [orders, total] = await Promise.all([
+            OrderModel.find(query)
+                .select('-_id -__v')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            OrderModel.countDocuments(query)
+        ]);
+
+        const data = {
+            orders,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit)
+        }
+        return sendResponse(res, 200, true, data, "Orders history fetched successfully");
+
+    } catch (error) {
+        console.log('UNABLE TO GET USER ORDERS HISTORY', error)
+        sendResponse(res, 500, false, null, 'Unable to get user order history')
+    }
+}
 
 //get all orders (admin)
+export async function getAllorders(req, res) {
+    const { adminId } = req.user;
+
+    const {
+        limit = 10,
+        page = 1,
+        status,
+        period,
+        start, 
+        end, 
+        days,
+        sellerId,
+        buyerId,
+    } = req.query;
+
+    try {
+        const query = {};
+
+        // filter by sellerId or buyerId
+        if (sellerId) {
+            query.sellerId = sellerId;
+        }
+        if (buyerId) {
+            query.buyerId = buyerId;
+        }
+
+        // filter by paymentStatus if provided
+        if (status) {
+            query.status = status;
+        }
+
+        // date filtering
+        let dateFilter = {};
+        const now = new Date();
+
+        switch (period) {
+            case "today":
+                dateFilter = {
+                    $gte: new Date(now.setHours(0, 0, 0, 0)),
+                    $lte: new Date()
+                };
+                break;
+            case "week":
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                dateFilter = { $gte: weekAgo, $lte: new Date() };
+                break;
+            case "month":
+                const monthAgo = new Date();
+                monthAgo.setMonth(monthAgo.getMonth() - 1);
+                dateFilter = { $gte: monthAgo, $lte: new Date() };
+                break;
+            case "year":
+                const yearAgo = new Date();
+                yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+                dateFilter = { $gte: yearAgo, $lte: new Date() };
+                break;
+            case "custom":
+                if (days) {
+                    const from = new Date();
+                    from.setDate(from.getDate() - parseInt(days));
+                    dateFilter = { $gte: from, $lte: new Date() };
+                } else if (start && end) {
+                    dateFilter = {
+                        $gte: new Date(start),
+                        $lte: new Date(end)
+                    };
+                }
+                break;
+            case "all":
+            default:
+                break;
+        }
+
+        if (Object.keys(dateFilter).length > 0) {
+            query.createdAt = dateFilter;
+        }
+
+        // pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const [orders, total] = await Promise.all([
+            OrderModel.find(query)
+                .select('-_id -__v')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            OrderModel.countDocuments(query)
+        ]);
+
+        const data = {
+            orders,
+            total,
+            page: parseInt(page),
+            pages: Math.ceil(total / limit)
+        };
+
+        return sendResponse(res, 200, true, data, "All orders fetched successfully");
+
+    } catch (error) {
+        console.error("UNABLE TO GET ALL ORDERS HISTORY (ADMIN)", error);
+        return sendResponse(res, 500, false, null, "Unable to get all orders history");
+    }
+}
 
 //get an order (buyer or seller or admin)
+export async function getOrder(req, res) {
+    const { orderId } = req.params
+    if(!orderId) return sendResponse(res, 400, false, null, 'Order Id is required')
+
+    try {
+        const order = await OrderModel.findOne({ orderId }).select('-_id -__v')
+        if(!order) return sendResponse(res, 404, false, null, 'No order found')
+
+        sendResponse(res, 200, true, order, 'Order detail fetched success')
+    } catch (error) {
+        console.log('UNABLE TO GET ORDER DATA', error)
+        sendResponse(res, 500, false, null, 'Unable to get order histroy detail')
+    }
+}
 
 //pay for order (bank - zenith bank api)
+export async function makePayment(req, res) {
+    const { userId } = req.body
+    
+    try {
+        
+    } catch (error) {
+        
+    }
+}
 
 //approve order payment by admin (manual use case)
 
@@ -133,4 +476,3 @@ export async function getOrderSummary(req, res) {
         return sendResponse(res, 500, false, null, "Unable to fetch order summary");
     }
 }
-

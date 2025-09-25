@@ -71,6 +71,7 @@ import UploadRoutes from './routes/upload.routes.js'
 import ProductRoutes from './routes/product.routes.js'
 import SellerRoutes from './routes/seller.routes.js'
 import TransactionRoutes from './routes/transaction.routes.js'
+import OrderRoutes from './routes/order.routes.js'
 
 
 
@@ -81,6 +82,7 @@ app.use('/api/upload', UploadRoutes)
 app.use('/api/product', ProductRoutes)
 app.use('/api/seller', SellerRoutes)
 app.use('/api/transaction', TransactionRoutes)
+app.use('/api/order', OrderRoutes)
 
 
 

@@ -60,6 +60,9 @@ tags:
     description: Chat for order contract exchange
   - name: Transaction
     description: Transactions histroy endpoint
+  - name: Order
+    description: Orders histroy endpoint
+
 
 
 paths:
@@ -2845,3 +2848,318 @@ paths:
         500:
           description: Unable to export transaction data
 
+#ORDER
+  /order/summary/{period}:
+    get:
+      tags:
+        - Order
+      summary: Get orders summary
+      description: >
+        Fetches the transaction summary for a user (buyer or seller) based on the specified period.  
+        Returns totals grouped by `status`.
+      parameters:
+        - name: period
+          in: path
+          required: true
+          type: string
+          enum: [today, week, month, year, all, custom]
+          description: >
+            Time period for filtering orders.  
+            Use `custom` with query params (`days` or `start` & `end`).
+        - name: start
+          in: query
+          required: false
+          type: string
+          format: date-time
+          description: Start date for custom period filtering (used with `end`).
+        - name: end
+          in: query
+          required: false
+          type: string
+          format: date-time
+          description: End date for custom period filtering (used with `start`).
+        - name: days
+          in: query
+          required: false
+          type: integer
+          description: Number of past days to filter (alternative to `start` & `end`).
+      responses:
+        200:
+          description: Order summary fetched successfully
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+                  enum: ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']
+                  description: Payment status
+                totalAmount:
+                  type: number
+                  format: double
+                  description: Total orders amount for this payment status
+                count:
+                  type: integer
+                  description: Number of orders for this payment status
+          examples:
+            application/json:
+              [
+                { "name": "Pending", "totalAmount": 200, "count": 5 },
+                { "name": "Shipment", "totalAmount": 500, "count": 2 },
+                { "name": "Processing", "totalAmount": 1000, "count": 3 }
+              ]
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch transactions summary
+
+  /order/history:
+    get:
+      tags:
+        - Order
+      summary: Get order history
+      description: >
+        Fetches paginated orders history for the authenticated user (buyer or seller).  
+        Orders can be filtered by `paymentStatus`, `period`, and custom date ranges.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          default: 10
+          description: Number of orders to return per page.
+        - name: page
+          in: query
+          required: false
+          type: integer
+          default: 1
+          description: Page number for pagination.
+        - name: status
+          in: query
+          required: false
+          type: string
+          enum: ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']
+          description: Filter by payment status.
+        - name: period
+          in: query
+          required: false
+          type: string
+          enum: [today, week, month, year, all, custom]
+          description: >
+            Time period for filtering orders.  
+            Use `custom` with query params (`days` or `start` & `end`).
+        - name: start
+          in: query
+          required: false
+          type: string
+          format: date-time
+          description: Start date for custom period filtering (used with `end`).
+        - name: end
+          in: query
+          required: false
+          type: string
+          format: date-time
+          description: End date for custom period filtering (used with `start`).
+        - name: days
+          in: query
+          required: false
+          type: integer
+          description: Number of past days to filter (alternative to `start` & `end`).
+      responses:
+        200:
+          description: Orders history fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to get orders history
+
+  /order/allOrders:
+    get:
+      tags:
+        - Order
+      summary: Get all orders history (ADMIN ROUTE)
+      description: >
+        Fetches paginated orders history for the authenticated user (buyer or seller).  
+        Orders can be filtered by `status`, `period`, and custom date ranges.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          default: 10
+          description: Number of orders to return per page.
+        - name: page
+          in: query
+          required: false
+          type: integer
+          default: 1
+          description: Page number for pagination.
+        - name: status
+          in: query
+          required: false
+          type: string
+          enum: ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']
+          description: Filter by payment status.
+        - name: period
+          in: query
+          required: false
+          type: string
+          enum: [today, week, month, year, all, custom]
+          description: >
+            Time period for filtering orders.  
+            Use `custom` with query params (`days` or `start` & `end`).
+        - name: start
+          in: query
+          required: false
+          type: string
+          format: date-time
+          description: Start date for custom period filtering (used with `end`).
+        - name: end
+          in: query
+          required: false
+          type: string
+          format: date-time
+          description: End date for custom period filtering (used with `start`).
+        - name: days
+          in: query
+          required: false
+          type: integer
+          description: Number of past days to filter (alternative to `start` & `end`).
+        - name: sellerId
+          in: query
+          required: false
+          type: string
+          description: id of seller
+        - name: buyerId
+          in: query
+          required: false
+          type: string
+          description: id of buyer
+      responses:
+        200:
+          description: Orders history fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to get orders history
+
+  /order/{orderId}:
+    get:
+      tags:
+        - Order
+      summary: Get transactions summary
+      description: >
+        Fetches the order detail of a order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          type: string
+          description: >
+            orderId of the specific order
+      responses:
+        200:
+          description: Orders detail fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch order summary
+
+  /order/newOrder:
+    post:
+      tags:
+        - Order
+      summary: Create new order invoice (SELLER)
+      description: Endpoint for seller to create new order invoice
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - buyerEmail
+              - amount
+              - productId
+              - quantity
+            properties:
+              buyerEmail:
+                type: string
+              amount:
+                type: number
+              productId:
+                type: string
+              quantity:
+                type: number
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /order/editOrder:
+    post:
+      tags:
+        - Order
+      summary: Edit order invoice (SELLER)
+      description: Endpoint for seller to edit order invoice
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - orderId
+            properties:
+              orderId:
+                type: string
+              buyerEmail:
+                type: string
+              amount:
+                type: number
+              productId:
+                type: string
+              quantity:
+                type: number
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /order/makePayment:
+    post:
+      tags:
+        - Order
+      summary: pay order invoice
+      description: Endpoint for buyer to pay for invoice
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - orderId
+            properties:
+              orderId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error

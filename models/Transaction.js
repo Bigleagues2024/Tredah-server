@@ -34,6 +34,20 @@ const TransactionSchema = new mongoose.Schema({
     paymentMethod: {
         type: String
     },
+    transactionReference: {
+        type: String
+    },
+    accessCode: {
+        type: String
+    },
+    paymentMode: {
+        type: String
+    },
+    paidCurrency: {
+        type: String,
+        default: 'NGN'
+    },
+
     paymentStatus: {
         type: String,
         default: 'Pending',
