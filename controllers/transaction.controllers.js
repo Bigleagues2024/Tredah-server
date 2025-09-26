@@ -455,3 +455,70 @@ export async function requestRefund(params) {
         
     }
 }
+
+//get transaction stats
+export async function getTransactionsStats(req, res) {
+  const { period = '30days' } = req.query;
+
+  const periods = {
+    '3days': 3,
+    '7days': 7,
+    '15days': 15,
+    '30days': 30,
+    '3mth': 90,
+    '6mth': 180,
+    '1year': 365,
+    'alltime': null
+  };
+
+  if (!periods.hasOwnProperty(period)) {
+    return sendResponse(res, 400, false, 'Invalid period specified');
+  }
+
+  try {
+    let startDate = periods[period] ? subDays(new Date(), periods[period]) : null;
+    let previousStartDate = periods[period] ? subDays(startDate, periods[period]) : null;
+    let endDate = new Date();
+    let previousEndDate = startDate;
+
+    const currentFilter = startDate ? { createdAt: { $gte: startDate, $lte: endDate } } : {};
+    const previousFilter = previousStartDate ? { createdAt: { $gte: previousStartDate, $lte: previousEndDate } } : {};
+
+    // statuses to calculate
+    const statuses = [
+      { id: 'totalTransaction', name: 'Total Transactions', filter: {} },
+      { id: 'pendingTransaction', name: 'Pending Transactions', filter: { status: 'Pending' } },
+      { id: 'completedTransaction', name: 'Processing Transactions', filter: { status: 'Completed' } },
+      { id: 'failedTransaction', name: 'Shipment Transactions', filter: { status: 'Failed' } },
+      { id: 'cancelledTransaction', name: 'Delivered Transactions', filter: { status: 'Cancelled' } },
+    ];
+
+    // calculate for each status
+    const results = await Promise.all(
+      statuses.map(async (s) => {
+        const current = await TransactionModel.countDocuments({ ...currentFilter, ...s.filter });
+        const previous = await TransactionModel.countDocuments({ ...previousFilter, ...s.filter });
+
+        const percentageChange = (currentVal, prevVal) => {
+          if (prevVal === 0) return currentVal > 0 ? 100 : 0;
+          let change = ((currentVal - prevVal) / prevVal) * 100;
+          return Math.abs(change.toFixed(2));
+        };
+
+        return {
+          id: s.id,
+          name: s.name,
+          current,
+          previous,
+          percentage: percentageChange(current, previous),
+          percentageChange: current >= previous ? '+' : '-',
+        };
+      })
+    );
+
+    sendResponse(res, 200, true, results, 'Transactions statistics retrieved successfully');
+  } catch (error) {
+    console.log('UNABLE TO GET TRANSACTIONS STATS', error);
+    sendResponse(res, 500, false, 'Unable to get Transactions stats');
+  }
+}

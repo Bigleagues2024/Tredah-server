@@ -20,12 +20,12 @@ router.post('/export', AuthenticateUser, controllers.exportTransactionHistroy)
 //GET
 router.get('/summary', AuthenticateUser, controllers.getTransactionsSummary)
 router.get('/history', AuthenticateUser, controllers.getTransactionsHistroy)
-router.get('/:transactionId', AuthenticateUser, controllers.getTransaction)
+router.get('/transactionDetail/:transactionId', AuthenticateUser, controllers.getTransaction)
 
 //get methods store
 
 //get methods admin
 router.get('/allTransaction', AuthenticateAdmin, PermissionsRole(['transaction', 'admin', 'superadmin']), controllers.getAllTransactionsHistroy)
-
+router.get('/stats', AuthenticateAdmin, PermissionsRole(['transaction', 'admin', 'superadmin']), controllers.getTransactionsStats)
 
 export default router

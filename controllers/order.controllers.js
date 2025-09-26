@@ -4,6 +4,7 @@ import ProductModel from "../models/Product.js";
 import UserModel from "../models/User.js";
 import SellerKycInfoModel from "../models/SellerKycInfo.js";
 import NotificationModel from "../models/Notification.js";
+import { subDays } from "date-fns";
 
 //new order
 export async function newOrder(req, res) {
@@ -348,7 +349,7 @@ export async function getOrder(req, res) {
 //pay for order (bank - zenith bank api)
 export async function makePayment(req, res) {
     const { userId } = req.body
-    
+
     try {
         
     } catch (error) {
@@ -475,4 +476,73 @@ export async function getOrderSummary(req, res) {
         console.log("UNABLE TO FETCH ORDER SUMMARY", error);
         return sendResponse(res, 500, false, null, "Unable to fetch order summary");
     }
+}
+
+//fetch order stats (admin)
+export async function getOrderStats(req, res) {
+  const { period = '30days' } = req.query;
+
+  const periods = {
+    '3days': 3,
+    '7days': 7,
+    '15days': 15,
+    '30days': 30,
+    '3mth': 90,
+    '6mth': 180,
+    '1year': 365,
+    'alltime': null
+  };
+
+  if (!periods.hasOwnProperty(period)) {
+    return sendResponse(res, 400, false, 'Invalid period specified');
+  }
+
+  try {
+    let startDate = periods[period] ? subDays(new Date(), periods[period]) : null;
+    let previousStartDate = periods[period] ? subDays(startDate, periods[period]) : null;
+    let endDate = new Date();
+    let previousEndDate = startDate;
+
+    const currentFilter = startDate ? { createdAt: { $gte: startDate, $lte: endDate } } : {};
+    const previousFilter = previousStartDate ? { createdAt: { $gte: previousStartDate, $lte: previousEndDate } } : {};
+
+    // statuses to calculate
+    const statuses = [
+      { id: 'totalOrders', name: 'Total Orders', filter: {} },
+      { id: 'pendingOrders', name: 'Pending Orders', filter: { status: 'Pending' } },
+      { id: 'processingOrders', name: 'Processing Orders', filter: { status: 'Processing' } },
+      { id: 'shipmentOrders', name: 'Shipment Orders', filter: { status: 'Shipment' } },
+      { id: 'deliveredOrders', name: 'Delivered Orders', filter: { status: 'Delivered' } },
+      { id: 'cancelledOrders', name: 'Cancelled Orders', filter: { status: 'Cancelled' } },
+      { id: 'returnedOrders', name: 'Returned Orders', filter: { status: 'Returned' } },
+    ];
+
+    // calculate for each status
+    const results = await Promise.all(
+      statuses.map(async (s) => {
+        const current = await OrderModel.countDocuments({ ...currentFilter, ...s.filter });
+        const previous = await OrderModel.countDocuments({ ...previousFilter, ...s.filter });
+
+        const percentageChange = (currentVal, prevVal) => {
+          if (prevVal === 0) return currentVal > 0 ? 100 : 0;
+          let change = ((currentVal - prevVal) / prevVal) * 100;
+          return Math.abs(change.toFixed(2));
+        };
+
+        return {
+          id: s.id,
+          name: s.name,
+          current,
+          previous,
+          percentage: percentageChange(current, previous),
+          percentageChange: current >= previous ? '+' : '-',
+        };
+      })
+    );
+
+    sendResponse(res, 200, true, results, 'Orders statistics retrieved successfully');
+  } catch (error) {
+    console.log('UNABLE TO GET ORDER STATS', error);
+    sendResponse(res, 500, false, 'Unable to get orders stats');
+  }
 }

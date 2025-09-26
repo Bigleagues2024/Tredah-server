@@ -22,12 +22,13 @@ router.post('/makePayment', AuthenticateUser, AllowedUserType(['buyer']), contro
 //GET
 router.get('/summary', AuthenticateUser, controllers.getOrderSummary)
 router.get('/history', AuthenticateUser, controllers.getordersHistory)
-router.get('/:orderId', AuthenticateUser, controllers.getOrder)
+router.get('/orderDetail/:orderId', AuthenticateUser, controllers.getOrder)
 
 //get methods store
 
 //get methods admin
 router.get('/allorders', AuthenticateAdmin, PermissionsRole(['order', 'admin', 'superadmin']), controllers.getAllorders)
+router.get('/stats', AuthenticateAdmin, PermissionsRole(['order', 'admin', 'superadmin']), controllers.getOrderStats)
 
 
 export default router
