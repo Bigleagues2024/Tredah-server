@@ -114,15 +114,22 @@ const UserSchema = new mongoose.Schema({
         type: String
     },
     subscriptionTier: {
-        type: String
+        type: Number,
+        default: 1,
     },
     subscriptionPriceId: {
         type: String
     },
     subscriptionStartDate: {
-        type: String
+        type: Date
     },
     subscriptionEndDate: {
+        type: Date
+    },
+    customerCode: {
+        type: String
+    },
+    subscriptionCode: {
         type: String
     },
 

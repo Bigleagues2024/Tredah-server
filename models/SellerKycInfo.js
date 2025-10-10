@@ -40,6 +40,9 @@ const SellerKycInfoSchema = new mongoose.Schema({
     socialLink: {
         type: String
     },
+    entityType: {
+        type: String
+    },
     isActive: {
         type: Boolean,
         default: false

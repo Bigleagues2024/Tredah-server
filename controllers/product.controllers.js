@@ -1019,7 +1019,7 @@ export async function unBlockProduct(req, res) {
         })
 
         const { __v, _id, ...productData } = getProduct._doc
-        sendResponse(res, 200, true, productData, 'Product Blocked')
+        sendResponse(res, 200, true, productData, 'Product unblocked')
     } catch (error) {
         console.log('UNABLE TO UNBLOCK PRODUCT', error)
         sendResponse(res, 500, false, null, 'Unable to unblock product')
@@ -1233,7 +1233,7 @@ export async function unlikeProduct(req, res) {
     await getProduct.save();
 
     // Remove the productId from the savedProducts array
-    getUser.likes = getUser.likes.filter(id => id !== productId);
+    getUser.savedProducts = getUser.savedProducts.filter(id => id !== productId);
     await getUser.save();
 
     sendResponse(res, 200, true, null,  'Like removed');

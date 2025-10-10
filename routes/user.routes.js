@@ -18,9 +18,10 @@ router.post('/deleteShippingAddres', AuthenticateUser, controllers.deleteShippin
 router.post('/updatePassword', AuthenticateUser, controllers.updatePassword)
 
 //post methods admin
-//router.post('/approveAccount', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.approveAccount)
+router.post('/approveAccount', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.approveAccount)
 router.post('/blockAccount', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.blockAccount)
-router.post('/approveAccount', controllers.approveAccount)
+//router.post('/approveAccount', controllers.approveAccount)
+router.post('/notification', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.notifyUser)
 
 
 //GET
@@ -28,11 +29,16 @@ router.get('/getProfile', AuthenticateUser, controllers.getProfile)
 router.get('/getNotifications', AuthenticateUser, controllers.getNotifications)
 router.get('/getShippingAddress', AuthenticateUser, controllers.getShippingAddress)
 
+router.get('/getSubscriptionHistroy', AuthenticateUser, controllers.getSubscriptionHistory)
+
 //get methods admin
 router.get('/getAllUsers', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getAllUsers)
 router.get('/getUser/:userId', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getUser)
 router.get('/getUserStats', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getUserStats)
 router.get('/getUserShippingAddress/:userId', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getUser)
+
+router.get('/getUserSubscriptionHistroy/:email', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getSubscriptionHistory)
+router.get('/getSubscriptionDetails/:id', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.getSubscriptionDetails)
 
 
 export default router

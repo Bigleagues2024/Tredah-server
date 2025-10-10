@@ -62,7 +62,8 @@ tags:
     description: Transactions histroy endpoint
   - name: Order
     description: Orders histroy endpoint
-
+  - name: Subscription
+    description: Subscription endpoint
 
 
 paths:
@@ -594,6 +595,42 @@ paths:
         500:
           description: Server error
 
+  /user/notification:
+    post:
+      tags:
+        - User
+      summary: Send notification to users (ADMIN ROUTE)
+      description: Endpoint to send notification to user. userType - `['seller', 'buyer']`
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - message
+            properties:
+              message:
+                type: string
+              image:
+                type: string
+              userType:
+                type: string
+              allUsers:
+                type: boolean
+                example: false
+              user:
+                type: array
+                items: string
+                example: ['userId1', 'userId2']
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
   /user/addShippingAddres:
     post:
       tags:
@@ -918,6 +955,87 @@ paths:
           in: query
           required: false
           description: The period for which the data should be fetched, values are - [3days 7days 30days 3mth 6mth 1year alltime] default is 30days
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/getSubscriptionHistroy:
+    get:
+      tags:
+        - User
+      summary: Get user subscription histroy
+      description: The endpoint provides user subscription histroy
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/getUserSubscriptionHistroy/{email}:
+    get:
+      tags:
+        - User
+      summary: Get user subscription histroy (ADMIN ROUTE)
+      description: The endpoint provides user subscription histroy
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: email
+          in: params
+          required: true
+          description: The email of the user
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /user/getSubscriptionDetails/{id}:
+    get:
+      tags:
+        - User
+      summary: Get subscription detail (ADMIN ROUTE)
+      description: The endpoint provides subscription detail
+      parameters:
+        - name: id
+          in: params
+          required: true
+          description: The id (_id) of the subscription
           schema:
             type: string
       responses:
@@ -3209,3 +3327,74 @@ paths:
           description: User error
         500:
           description: Server error
+
+#SUBSCRIPTION
+
+  /subscription/histroy:
+    get:
+      tags:
+        - Subscription
+      summary: Get all users subscription histroy (ADMIN ROUTE)
+      description: The endpoint provides all users subscription histroy
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /subscription/history/{id}:
+    get:
+      tags:
+        - Subscription
+      summary: Get subscription detail (ADMIN ROUTE)
+      description: The endpoint provides subscription detail
+      parameters:
+        - name: id
+          in: params
+          required: true
+          description: The id (_id) of the subscription
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /subscription/stats:
+    get:
+      tags:
+        - Subscription
+      summary: Get Subscription stats (ADMIN ROUTE)
+      description: The endpoint provides stats histroy on adverts
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: The period for which the data should be fetched, values are - [3days 7days 30days 3mth 6mth 1year alltime] default is 30days
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error

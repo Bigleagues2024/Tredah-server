@@ -7,7 +7,9 @@ import OtpModel from "../models/Otp.js"
 import ProductModel from "../models/Product.js"
 import SellerKycInfoModel from "../models/SellerKycInfo.js"
 import ShippingAddressModel from "../models/ShippingAddress.js"
+import SubscriptionHistroyModel from "../models/SubscriptionHistroy.js"
 import UserModel from "../models/User.js"
+import { subDays } from 'date-fns';
 
 //get user profile by user
 export async function getProfile(req, res) {
@@ -460,6 +462,90 @@ export async function markNotificationAsRead(req, res) {
     }
 }
 
+// Send notification(s) to user(s)
+export async function notifyUser(req, res) {
+  const { user, message, image, userType, allUsers } = req.body;
+
+  //Basic validation
+  if (!message)
+    return sendResponse(res, 400, false, null, "Message is required");
+
+  if (allUsers && typeof allUsers !== "boolean")
+    return sendResponse(
+      res,
+      400,
+      false,
+      null,
+      `'allUsers' value must be a boolean`
+    );
+
+  if (userType && !["seller", "buyer"].includes(userType.toLowerCase()))
+    return sendResponse(res, 400, false, null, "Invalid user type");
+
+  try {
+    let userIds = [];
+
+    // If `allUsers` is true
+    if (allUsers && !userType) {
+      const users = await UserModel.find({}, "userId");
+      userIds = users.map((u) => u.userId);
+    }
+
+    // If `allUsers` + specific userType (e.g. all sellers)
+    else if (allUsers && userType) {
+      const users = await UserModel.find(
+        { userType: userType.toLowerCase() },
+        "userId"
+      );
+      userIds = users.map((u) => u.userId);
+    }
+
+    // If `user` array is provided
+    else if (Array.isArray(user) && user.length > 0) {
+      userIds = user;
+    }
+
+    // If no users found
+    if (!userIds.length) {
+      return sendResponse(
+        res,
+        404,
+        false,
+        null,
+        "No users found to notify"
+      );
+    }
+
+    // Prepare notification documents
+    const notifications = userIds.map((id) => ({
+      userId: id,
+      notification: message,
+      image,
+    }));
+
+    // Save all notifications
+    await NotificationModel.insertMany(notifications);
+
+    // ✅ Done
+    return sendResponse(
+      res,
+      200,
+      true,
+      { notifiedCount: userIds.length },
+      `Notification sent to ${userIds.length} user(s)`
+    );
+  } catch (error) {
+    console.error("UNABLE TO NOTIFY USER(s):", error);
+    return sendResponse(
+      res,
+      500,
+      false,
+      null,
+      "Unable to send notification to user(s)"
+    );
+  }
+}
+
 //mark all as read
 export async function markAllNotificationAsRead(req, res) {
     const { userId } = req.user
@@ -643,5 +729,58 @@ export async function getShippingAddress(req, res) {
     } catch (error) {
         console.log('UNABLE TO GET SHIPPING ADDRESS', error)
         sendResponse(res, 500, false, null, 'Unable to get shipping address')
+    }
+}
+
+//get user subscription histroy
+export async function getSubscriptionHistory(req, res) {
+    const { email: ownerEmail } = req.user;
+    const { email: accountEmail } = req.params;
+    const { limit = 10, page = 1 } = req.query;
+
+    const email = ownerEmail || accountEmail; // Use ownerEmail if available, else accountEmail
+    if(!email) return sendResponse(res, 400, false, 'Email address is required')
+    try {
+        // Get total count of subscriptions
+        const totalSubscriptions = await SubscriptionHistroyModel.countDocuments({ email });
+
+        // Calculate pagination values
+        const totalPages = Math.ceil(totalSubscriptions / limit);
+        const skip = (page - 1) * limit;
+
+        // Fetch paginated subscription history
+        const subscriptionHistory = await SubscriptionHistroyModel.find({ email })
+            .sort({ createdAt: -1 }) // Sort by newest first
+            .skip(skip)
+            .limit(Number(limit))
+            .lean();
+
+        sendResponse(res, 200, true, {
+                subscriptions: subscriptionHistory,
+                totalSubscriptions,
+                totalPages,
+                currentPage: Number(page),
+                limit: Number(limit),
+            },
+            'Subscription fetched successfully'
+        );
+    } catch (error) {
+        console.log('UNABLE TO GET USER SUBSCRIPTION HISTORY', error);
+        sendResponse(res, 500, false, 'Unable to get user subscription history');
+    }
+}
+
+export async function getSubscriptionDetails(req, res){
+    const { id } = req.params
+    if(!id) return sendResponse(res, 400, false, 'Subscription data id is required')
+    
+    try {
+        const getSubscription = await SubscriptionHistroyModel.findById({ _id: id })
+        if(!getSubscription) return sendResponse(res, 404, false, 'Subscription not found')
+
+        sendResponse(res, 200, true, getSubscription, 'Subscription data fetched successful')
+    } catch (error) {
+        console.log('UNABLE TO FETCH SUBSCRIPTION DETAILS', error)
+        sendResponse(res, 500, false, 'Unable to get subscription details')
     }
 }

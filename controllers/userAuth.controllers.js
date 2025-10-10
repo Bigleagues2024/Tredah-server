@@ -7,6 +7,8 @@ import SellerKycInfoModel from "../models/SellerKycInfo.js";
 import UserModel from "../models/User.js";
 import moment from "moment";
 import crypto from 'crypto'
+import { VASBusinessVerification } from "../middleware/VASBuisnessVerification.js";
+import paystack from "../middleware/paystack.js";
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const userTypeOptions = ['seller', 'buyer']
@@ -39,6 +41,7 @@ export async function register(req, res) {
 
         let newMobileNumber
 
+        let customerCode
         //handle seller
         if(userType.trim().toLowerCase() === 'seller') {
             if(!sellerAccountTypeOptions.includes(sellerAccountType.trim().toLowerCase())) return sendResponse(res, 400, false, null, 'Invalid seller account type')
@@ -46,6 +49,7 @@ export async function register(req, res) {
             const verifyNumber = validateNigeriaNumber(mobileNumber)
             if(!verifyNumber.success) return sendResponse(res, 400, false, mobileNumber, verifyNumber.message)
             newMobileNumber = verifyNumber.number
+
         }
 
         //handle buyer
@@ -75,6 +79,18 @@ export async function register(req, res) {
                 accountId: userId,
                 sellerAccountType: sellerAccountType.trim().toLowerCase()
             })
+
+            // Create Paystack customer
+            const { data: customerRes } = await paystack.post("/customer", {
+                email: newUser.email,
+                first_name: newUser.email,
+                last_name: "",
+                phone: newMobileNumber,
+            });
+
+            // Save customer_code to user document
+            newUser.customerCode = customerRes.data.customer_code;
+            await newUser.save();
         } else {
             await BuyerKycInfoModel.create({
                 accountId: userId,
@@ -101,7 +117,7 @@ export async function register(req, res) {
 
         //mask email address
         const hideEmail = maskEmail(email)
-        sendResponse(res, 201, true, hideEmail, `User created otp email sent to ${hideEmail} to verify account`)
+        sendResponse(res, 201, true, hideEmail, `User created otp email sent to ${hideEmail} to verify account ${process.env.BUILD_MODE === 'DEV' ? `CODE${getOtpCode}` : ''}`)
     } catch (error) {
         console.log('UNABLE TO CREATE A NEW USER ACCOUNT', error)
         sendResponse(res, 500, false, null, 'Unable to create new user account')
@@ -139,7 +155,7 @@ export async function resendOtp(req, res) {
 
         //mask email address
         const hideEmail = maskEmail(getUser?.email)
-        sendResponse(res, 200, true, hideEmail, `Verification Otp sent to ${hideEmail}.`)
+        sendResponse(res, 200, true, hideEmail, `Verification Otp sent to ${hideEmail}. ${process.env.BUILD_MODE === 'DEV' ? `CODE: ${getOtpCode}` : ''}`)
     } catch (error) {
         console.log('UNABLE TO RESEND OTP CODE', error)
         sendResponse(res, 500, false, null, 'Unable to resend otp code')
@@ -165,7 +181,7 @@ export async function requestOtp(req, res) {
 
         //mask email address
         const hideEmail = maskEmail(getUser?.email)
-        sendResponse(res, 200, true, hideEmail, `Enter the OTP sent to adbdulq*. ${hideEmail} to continue. The code will expire in 15min`)
+        sendResponse(res, 200, true, hideEmail, `Enter the OTP sent to. ${hideEmail}8 to continue. The code will expire in 15min ${process.env.BUILD_MODE === 'DEV' ? `CODE:${getOtpCode}` : ``}`)
     } catch (error) {
         console.log('UNABLE TO REQUEST OTP CODE', error)
         sendResponse(res, 500, false, null, 'Unable to request otp code')
@@ -212,7 +228,7 @@ export async function verifyOtp(req, res) {
 //complete seller onboarding
 export async function completeSellerOnboarding(req, res) {
     const tredahuserid = req.cookies.tredahuserid;
-    const { sellerAccountType, name, email, mobileNumber, address, nin: ninValue, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, businessEmail, taxId, socialLink } = req.body
+    const { sellerAccountType, name, email, mobileNumber, address, nin: ninValue, companyName, businessType, businessRegistrationNumber, entityType, businessAddress, businessCategory, businessEmail, taxId, socialLink } = req.body
     if(sellerAccountType) {
         if(!sellerAccountTypeOptions.includes(sellerAccountType)) return sendResponse(res, 400, false, null, 'Invalid seller account type')
     }
@@ -240,13 +256,16 @@ export async function completeSellerOnboarding(req, res) {
         const getSeller = await SellerKycInfoModel.findOne({ accountId: getUser?.userId })
         if(!getSeller) return sendResponse(res, 404, false, null, 'Seller account does not exist')
         
-        if(sellerAccountType && sellerAccountType === '' || getSeller?.sellerAccountType === 'business'){
+        if(sellerAccountType === 'business' || getSeller?.sellerAccountType === 'business'){
             if(!companyName) return sendResponse(res, 400, false, null, 'Company name is required')
             if(!businessType) return sendResponse(res, 400, false, null, 'Business Type is required')
             if(!businessRegistrationNumber) return sendResponse(res, 400, false, null, 'Business Registration number is required')
             if(!businessAddress) return sendResponse(res, 400, false, null, 'Business address is required')
             if(!taxId) return sendResponse(res, 400, false, null, 'Business tax id is required')
             if(!socialLink) return sendResponse(res, 400, false, null, 'Business social link is required')
+        
+            //verify businessRegistrationNumber nin
+            const verifyBusiness = await VASBusinessVerification({ regNum: businessRegistrationNumber, entityType: entityType })
         }
 
         getUser.name = name
@@ -265,6 +284,7 @@ export async function completeSellerOnboarding(req, res) {
         if(taxId) getSeller.taxId = taxId
         if(businessCategory) getSeller.businessCategory = businessCategory
         if(socialLink) getSeller.socialLink = socialLink
+        if(entityType) getSeller.entityType = entityType
         //getSeller.isActive = true
         await getSeller.save()
 
@@ -275,7 +295,6 @@ export async function completeSellerOnboarding(req, res) {
             buttonLink: `${process.env.DEV_URL_ONE}`,
         })
 
-        //verify businessRegistrationNumber nin
 
         //clear cookie
         res.clearCookie(`tredahuserid`)
@@ -602,7 +621,7 @@ export async function forgotPassword(req, res) {
 
         //mask email address
         const hideEmail = maskEmail(email)
-        sendResponse(res, 200, true, hideEmail, `Reset password link sent to ${hideEmail} Link is valid `)
+        sendResponse(res, 200, true, hideEmail, `Reset password link sent to ${hideEmail} Link is valid ${process.env.BUILD_MODE === 'DEV' ? `RESETTOKEN: ${resetToken}` : ``}`)
     } catch (error) {
         console.log('UNALE TO PROCESS FORGOT PASSWORD', error)
         sendResponse(res, 500, false, null, 'Unable to process forgot password request')

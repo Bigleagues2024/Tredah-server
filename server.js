@@ -52,10 +52,10 @@ app.use(cors(corsOptions));
 // Add Morgan middleware to log HTTP requests
 app.use(morgan('dev'));
 
-//STRIPE WEBHOOK
-//import * as sexOrientControllers from './controllers/sex-orient/stripeWebhook.controllers.js';
+//PAYSTACK WEBHOOK
+import * as payStackControllers from './controllers/paystackWebhook.controllers.js';
 
-//app.post('/api/sex-orient/webhook/stripeWebHook', express.raw({ type: 'application/json' }), sexOrientControllers.stripeWebHook);
+app.post('/api/paystack/subscription/webhook', express.raw({ type: 'application/json' }), payStackControllers.paystackSubscriptionWebHook);
 
 //EXPRESS MIDDLEWARE
 app.use(cookieParser());
@@ -72,6 +72,7 @@ import ProductRoutes from './routes/product.routes.js'
 import SellerRoutes from './routes/seller.routes.js'
 import TransactionRoutes from './routes/transaction.routes.js'
 import OrderRoutes from './routes/order.routes.js'
+import SubscriptionRoutes from './routes/subscription.routes.js'
 
 
 
@@ -83,6 +84,7 @@ app.use('/api/product', ProductRoutes)
 app.use('/api/seller', SellerRoutes)
 app.use('/api/transaction', TransactionRoutes)
 app.use('/api/order', OrderRoutes)
+app.use('/api/subscription', SubscriptionRoutes)
 
 
 
