@@ -20,8 +20,8 @@ router.post('/updatePassword', AuthenticateUser, controllers.updatePassword)
 //post methods admin
 router.post('/approveAccount', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.approveAccount)
 router.post('/blockAccount', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.blockAccount)
-//router.post('/approveAccount', controllers.approveAccount)
 router.post('/notification', AuthenticateAdmin, PermissionsRole(['user', 'admin','superadmin']), controllers.notifyUser)
+//router.post('/notification', controllers.notifyUser)
 
 
 //GET

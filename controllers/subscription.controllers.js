@@ -32,10 +32,12 @@ function validateFeatures(features) {
   return { success: true, data: 'All features are valid.' };
 }
 
+const intervalOption = ['hourly', 'monthly', 'quarterly', 'biannually', 'yearly']
+
 // Create a subscription plan (Admin)
 export async function createSubscriptionPlan(req, res) {
   try {
-    const { productName, price, subscriptionTier, interval, currency, features, trialPeriodDays, slug } = req.body;
+    const { productName, price, subscriptionTier, interval, features, trialPeriodDays, slug, productCTA } = req.body;
     if(!productName) return sendResponse(res, 400, false, 'Product Name is required')
     if(!price) return sendResponse(res, 400, false, 'Product Price is required')
     if(!subscriptionTier) return sendResponse(res, 400, false, 'Subscription Tier Number is required')
@@ -49,6 +51,7 @@ export async function createSubscriptionPlan(req, res) {
             return sendResponse(res, 400, false, verifyFeature.data)
         }
     }
+    if(interval && !intervalOption.includes(interval)) return sendResponse(res, 400, false, null, 'Invalid interval options')
 
     const isTeirExist = await SubscriptionPlanModel.findOne({ disabled: false, subscriptionTier })
     if(isTeirExist) return sendResponse(res, 400, false, null, 'An active subcription plan already exist with this subscription tier')
@@ -59,7 +62,7 @@ export async function createSubscriptionPlan(req, res) {
         amount: price * 100, // kobo
         interval: interval || 'monthly', // monthly, yearly
         currency: "NGN",
-        description: productCTA || '',
+        description: productCTA || slug || '',
         //trial_days: trialPeriodDays ? parseInt(trialPeriodDays) : 0,
     });
 
@@ -67,13 +70,13 @@ export async function createSubscriptionPlan(req, res) {
       productName,
       price,
       interval,
-      currency,
       trialPeriodDays,
       subscriptionTier,
       productId: paystackRes.data.plan_code,
       priceId: paystackRes.data.id.toString(),
       features,
-      slug
+      slug,
+      productCTA
     });
 
     await plan.save();
@@ -99,19 +102,17 @@ export async function getSubscriptions(req, res) {
   }
 }
 
-// updateSubscriptionPlan.js
+// updateSubscriptionPlan
 export async function updateSubscriptionPlan(req, res) {
   try {
     const { id } = req.params;
     const {
       productName,
-      currency,
+      subscriptionTier,
       features,
       trialPeriodDays,
       productCTA,
-      type,
       slug,
-      subscriptionTier,
     } = req.body;
 
     if(subscriptionTier) {
@@ -142,11 +143,9 @@ export async function updateSubscriptionPlan(req, res) {
 
     // Update all editable fields locally
     plan.productName = productName || plan.productName;
-    plan.currency = currency || plan.currency;
     plan.features = features || plan.features;
     plan.trialPeriodDays = trialPeriodDays || plan.trialPeriodDays;
     plan.productCTA = productCTA || plan.productCTA;
-    plan.type = type || plan.type;
     plan.slug = slug || plan.slug;
     plan.subscriptionTier = subscriptionTier || plan.subscriptionTier;
 
@@ -159,7 +158,7 @@ export async function updateSubscriptionPlan(req, res) {
   }
 }
 
-// toggleSubscriptionPlan.js
+// toggleSubscriptionPlan
 export async function toggleSubscriptionPlan(req, res) {
   try {
     const { id } = req.body;

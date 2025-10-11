@@ -3329,6 +3329,203 @@ paths:
           description: Server error
 
 #SUBSCRIPTION
+  /subscription:
+    post:
+      tags:
+        - Subscription
+      summary: Create a new subscription plan (ADMIN ROUTE)
+      description: |
+        This endpoint allows an admin to create a new subscription plan.
+        Each plan includes details such as product name, price, subscription tier, interval, and features.
+        interval options: ['hourly', 'monthly', 'quarterly', 'biannually', 'yearly']
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - productName
+              - price
+              - subscriptionTier
+              - interval
+            properties:
+              productName:
+                type: string
+                example: Business Plan
+              price: 
+                type: number
+                example: 30000
+              subscriptionTier:
+                type: number
+                example: 2
+              interval:
+                type: string
+                enum: ['hourly', 'monthly', 'quarterly', 'biannually', 'yearly']
+                example: monthly
+              features:
+                type: array
+                description: List of features included in the plan
+                items:
+                  type: object
+                  properties:
+                    titfeaturele:
+                      type: string
+                      example: "Priority customer support"
+                    active:
+                      type: boolean
+                      example: true
+              slug:
+                type: string
+                example: Most Popular
+              productCTA:
+                type: string
+                example: Get Started Now
+
+    get:
+      tags:
+        - Subscription
+      summary: Get all subscription
+      description: Endpoint to get all active subscription plans for users
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+  /subscription/{id}:
+    patch:
+      tags:
+        - Subscription
+      summary: Update a subscription plan (ADMIN ROUTE)
+      description: |
+        This endpoint allows an admin to update an existing subscription plan by its ID.
+        Only fields provided in the request body will be updated.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: The ID of the subscription plan to update
+          schema:
+            type: string
+            example: "652e2f74e33f7e0023b82a8b"
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              productName:
+                type: string
+                example: Business Plan
+              subscriptionTier:
+                type: number
+                example: 2
+              features:
+                type: array
+                description: List of features included in the plan
+                items:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                      example: "Priority customer support"
+                    active:
+                      type: boolean
+                      example: true
+              slug:
+                type: string
+                example: Most Popular
+              productCTA:
+                type: string
+                example: Get Started Now
+      responses:
+        200:
+          description: Subscription plan updated successfully
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Subscription not found
+        500:
+          description: Internal server error
+
+  /subscription/toggleActive:
+    post:
+      tags:
+        - Subscription
+      summary: Toggle active status for Subscription (ADMIN ROUTE)
+      description: Endpoint for admin to toggle active status for subscription. this deactive the subscription of all users on the subscription if deactivated and do same when activated sending id (the _id of the subscription)
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /subscription/subscribe:
+    post:
+      tags:
+        - Subscription
+      summary: Subscribe for a plan
+      description: Endpoint for users to subscribe for a subscription plan
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - id
+            properties:
+              id:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /subscription/all:
+    get:
+      tags:
+        - Subscription
+      summary: Get all subscription (ADMIN ROUTE)
+      description: Endpoint to get all subscription plans
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
 
   /subscription/histroy:
     get:

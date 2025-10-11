@@ -16,7 +16,7 @@ router.post('/subscribe', AuthenticateUser, controllers.makeSubscription)
 
 
 //PUT
-router.put('/:id', AuthenticateAdmin, PermissionsRole(['admin','superadmin']), controllers.createSubscriptionPlan)
+router.patch('/:id', AuthenticateAdmin, PermissionsRole(['admin','superadmin']), controllers.createSubscriptionPlan)
 
 
 //GET
@@ -27,9 +27,8 @@ router.get('/all', AuthenticateAdmin, PermissionsRole(['admin','superadmin']), c
 
 router.get('/histroy', AuthenticateAdmin, PermissionsRole(['admin','superadmin']), controllers.getSubscriptionHistory)
 router.get('/history/:id', AuthenticateAdmin, PermissionsRole(['admin','superadmin']), controllers.getSubscriptionDetails)
-//router.get('/stats', AuthenticateAdmin, PermissionsRole(['admin','superadmin']), controllers.getSubscriptionStats)
+router.get('/stats', AuthenticateAdmin, PermissionsRole(['admin','superadmin']), controllers.getSubscriptionStats)
 
-router.get('/stats', controllers.getSubscriptionStats)
 
 
 export default router
