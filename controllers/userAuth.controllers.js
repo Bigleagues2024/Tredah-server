@@ -234,6 +234,8 @@ export async function completeSellerOnboarding(req, res) {
     }
     if(!name) return sendResponse(res, 400, false, null, 'Name is required')
     if(!address) return sendResponse(res, 400, false, null, 'Address is not required')
+    if(!ninValue) return sendResponse(res, 400, false, null, 'National Identity is required')
+    
     try {
         let getUser
         if(tredahuserid) {
