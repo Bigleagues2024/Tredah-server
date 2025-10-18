@@ -117,7 +117,7 @@ export async function register(req, res) {
 
         //mask email address
         const hideEmail = maskEmail(email)
-        sendResponse(res, 201, true, hideEmail, `User created otp email sent to ${hideEmail} to verify account ${process.env.BUILD_MODE === 'DEV' ? `CODE${getOtpCode}` : ''}`)
+        sendResponse(res, 201, true, hideEmail, `User created otp email sent to ${hideEmail} to verify account ${process.env.BUILD_MODE === 'DEV' ? `CODE: ${getOtpCode}` : ''}`)
     } catch (error) {
         console.log('UNABLE TO CREATE A NEW USER ACCOUNT', error)
         sendResponse(res, 500, false, null, 'Unable to create new user account')
@@ -181,7 +181,7 @@ export async function requestOtp(req, res) {
 
         //mask email address
         const hideEmail = maskEmail(getUser?.email)
-        sendResponse(res, 200, true, hideEmail, `Enter the OTP sent to. ${hideEmail}8 to continue. The code will expire in 15min ${process.env.BUILD_MODE === 'DEV' ? `CODE:${getOtpCode}` : ``}`)
+        sendResponse(res, 200, true, hideEmail, `Enter the OTP sent to. ${hideEmail}8 to continue. The code will expire in 15min ${process.env.BUILD_MODE === 'DEV' ? `CODE: ${getOtpCode}` : ``}`)
     } catch (error) {
         console.log('UNABLE TO REQUEST OTP CODE', error)
         sendResponse(res, 500, false, null, 'Unable to request otp code')
@@ -346,7 +346,7 @@ export async function completeSellerOnboarding(req, res) {
 //complete buyer onboarding
 export async function completeBuyerOnboarding(req, res) {
     const tredahuserid = req.cookies.tredahuserid;
-    const { buyerAccountType, name, email, mobileNumber, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory } = req.body
+    const { buyerAccountType, name, email, mobileNumber, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, taxId, socialLink } = req.body
     if(buyerAccountType) {
         if(!buyerAccountTypeOptions.includes(buyerAccountType)) return sendResponse(res, 400, false, null, 'Invalid buyer account type')
     }
@@ -395,6 +395,9 @@ export async function completeBuyerOnboarding(req, res) {
         if(businessRegistrationNumber) getBuyer.businessRegistrationNumber = businessRegistrationNumber
         if(businessAddress) getBuyer.businessAddress = businessAddress
         if(businessCategory) getBuyer.businessCategory = businessCategory
+        if(taxId) getBuyer.taxId = taxId
+        if(socialLink) getBuyer.socialLink = socialLink
+
         getBuyer.isActive = true
         await getBuyer.save()
 
@@ -745,5 +748,23 @@ export async function signout(req, res) {
     } catch (error) {
         console.log('UNABLE TO SIGNOUT ACCOUNT', error)
         return sendResponse(res, 500, false, null, 'Unable to process signout')
+    }
+}
+
+export async function dele(req, res) {
+    if(process.env.BUILD_MODE === 'DEV') {
+        try {
+            const {email} = req.body
+
+            const deleteUser = await UserModel.findOneAndDelete({ email })
+            if(!deleteUser) return sendResponse(res, 404, false, null, 'User with this email does not exist')
+
+            sendResponse(res, 200, true, null, `User with email ${email} deleted successfully`)
+        } catch (error) {
+            console.log('UNABLE TO DELETE EMAIL', error)
+            sendResponse(res, 500, false, null, 'Unable to delete email')
+        }
+    } else{
+        res.end()
     }
 }

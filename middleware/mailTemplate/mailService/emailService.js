@@ -1,34 +1,61 @@
-import nodemailer from 'nodemailer'
-import { config } from 'dotenv';
+import axios from "axios";
+import { config } from "dotenv";
 config();
 
+const apiKey = process.env.BREVO_API;
+const emailUrl = process.env.EMAIL_URL;
+const emailAddress = process.env.EMAIL_ADDRESS;
 
 
-const sendEmail = (options) => {
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.NODEMAILER_USER,
-            pass: process.env.NODEMAILER_PW
-        }
-    })
+const senderInfo = {
+  name: "Tredah Market Place",
+  email: emailAddress,
+};
 
-    const mailOptions = {
-        from: process.env.NODEMAILER_USER,
-        to: options.to,
-        subject: options.subject,
-        html: options.html
+/**
+ * sendEmail - Sends an email
+ * @param {Object} options - The email options
+ * @param {Array|String} options.to - Recipient(s): can be a single email or an array of emails/objects
+ * @param {String} options.subject - The subject line
+ * @param {String} options.html - The HTML content
+ */
+const sendEmail = async (options) => {
+  try {
+    // Normalize recipients
+    let recipients = [];
+
+    if (Array.isArray(options.to)) {
+      // If array of strings or objects
+      recipients = options.to.map((recipient) =>
+        typeof recipient === "string" ? { email: recipient } : recipient
+      );
+    } else if (typeof options.to === "string") {
+      recipients = [{ email: options.to }];
+    } else {
+      throw new Error("Invalid 'to' field. It must be a string or array.");
     }
 
-    transporter.sendMail(mailOptions, function(err, info){
-        if(err){
-            console.log('ERROR FROM NODEMON>>', err)
-        }else{
-            console.log('EMAIL SENT SUCCESSFUL')
-            //console.log('INFORMATION FROM NODEMON>>', info)
-        }
-    })
-}
+    const emailData = {
+      sender: senderInfo,
+      to: recipients,
+      subject: options.subject,
+      htmlContent: options.html,
+    };
 
+    const response = await axios.post(emailUrl, emailData, {
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": apiKey,
+      },
+    });
 
-export default sendEmail
+    console.log("EMAIL SENT SUCCESSFULLY:", response.data?.messageId || "OK");
+  } catch (error) {
+    console.error(
+      "UNABLE TO SEND EMAIL:",
+      error.response?.data || error.message
+    );
+  }
+};
+
+export default sendEmail;

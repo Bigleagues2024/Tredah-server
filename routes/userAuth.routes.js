@@ -18,6 +18,10 @@ router.post('/googleAuth', getLocation, controllers.googleAuth)
 router.post('/signout', AuthenticateUser, controllers.signout)
 router.post('/requestOtp', AuthenticateUser, controllers.requestOtp)
 
+//DEV
+router.post('/dele', getLocation, controllers.dele)
+
+
 //GET
 router.get('/verifyToken', AuthenticateUser, controllers.verifyToken)
 
