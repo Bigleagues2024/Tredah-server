@@ -103,3 +103,84 @@ export async function VASBusinessVerification({ regNum, entityType = "INCORPORAT
   }
 }
 VASBusinessVerification({ regNum: '35147935' })
+
+
+
+
+/******** EASY POST LOGISTICS API  ********** */
+async function getRates() {
+  const shipment = await client.Shipment.create({
+    to_address: {
+      name: 'Dr. Steve Brule',
+      street1: '525 8 Ave SW',
+      city: 'Calgary',
+      state: 'AB',
+      zip: 'T2P 1G1',
+      country: 'CA',
+      phone: '4035559999',
+    },
+    from_address: {
+      company: 'EasyPost Canada',
+      street1: '100 King St W',
+      street2: 'Suite 6200',
+      city: 'Toronto',
+      state: 'ON',
+      zip: 'M5X 1B8',
+      country: 'CA',
+      phone: '4161234567',
+    },
+    parcel: {
+      length: 8,
+      width: 5,
+      height: 5,
+      weight: 5,
+    },
+  });
+
+  return shipment.rates.map(rate => ({
+    shipment: shipment.id,
+    id: rate.id,
+    carrier: rate.carrier,
+    service: rate.service,
+    rate: rate.rate,
+    currency: rate.currency,
+    delivery_days: rate.delivery_days,
+    delivery_date: rate.delivery_date,
+  }));
+}
+
+// Example usage
+//getRates().then(console.log).catch(console.error);
+
+async function buyShipment(shipmentId, selectedRateId) {
+  // Retrieve the shipment from EasyPost
+  const shipment = await client.Shipment.retrieve(shipmentId);
+
+  // Find the selected rate
+  const rate = shipment.rates.find(r => r.id === selectedRateId);
+  if (!rate) throw new Error('Rate not found');
+
+  // Buy the shipment with the selected rate
+  const bought = await client.Shipment.buy(
+    shipmentId,
+    selectedRateId,
+    rate?.rate
+  );
+
+  // Optionally retrieve the associated tracker (can also be auto-created)
+  const tracker = bought.tracker ? await client.Tracker.retrieve(bought.tracker.id) : null;
+
+  return {
+    labelUrl: bought.postage_label?.label_url,
+    trackingCode: bought.tracking_code,
+    carrier: bought.selected_rate?.carrier,
+    service: bought.selected_rate?.service,
+    shipmentStatus: bought.status,
+    trackerId: tracker?.id || bought.tracker?.id || null,
+    trackerStatus: tracker?.status || bought.status || null
+  };
+}
+
+
+// Example usage
+//buyShipment('shp_d0e7a311c5614024bd93cca8acd02be8', 'rate_2c6920fa46574f138e1126f9e69501e3').then(console.log).catch(console.error);

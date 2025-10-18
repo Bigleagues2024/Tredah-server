@@ -346,7 +346,7 @@ export async function completeSellerOnboarding(req, res) {
 //complete buyer onboarding
 export async function completeBuyerOnboarding(req, res) {
     const tredahuserid = req.cookies.tredahuserid;
-    const { buyerAccountType, name, email, mobileNumber, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, taxId, socialLink } = req.body
+    const { buyerAccountType, name, email, mobileNumber, address, companyName, businessEmail, businessRegistrationNumber, businessAddress, businessCategory, taxId, socialLink } = req.body
     if(buyerAccountType) {
         if(!buyerAccountTypeOptions.includes(buyerAccountType)) return sendResponse(res, 400, false, null, 'Invalid buyer account type')
     }
@@ -377,7 +377,7 @@ export async function completeBuyerOnboarding(req, res) {
         //business account type is business verify business info
         if(buyerAccountType && buyerAccountType === 'business' || getBuyer?.buyerAccountType === 'business'){
             if(!companyName) return sendResponse(res, 400, false, null, 'Company name is required')
-            if(!businessType) return sendResponse(res, 400, false, null, 'Business Type is required')
+            //if(!businessEmail) return sendResponse(res, 400, false, null, 'Business Email is required')
             if(!businessRegistrationNumber) return sendResponse(res, 400, false, null, 'Business Registration number is required')
             if(!businessAddress) return sendResponse(res, 400, false, null, 'Business address is required')
             if(!businessCategory) return sendResponse(res, 400, false, null, 'Business category is required')
@@ -391,7 +391,7 @@ export async function completeBuyerOnboarding(req, res) {
         if(buyerAccountType) getBuyer.buyerAccountType = buyerAccountType
         if(address) getBuyer.address = address
         if(companyName) getBuyer.companyName = companyName
-        if(businessType) getBuyer.businessType = businessType
+        if(businessEmail) getBuyer.businessEmail = businessEmail
         if(businessRegistrationNumber) getBuyer.businessRegistrationNumber = businessRegistrationNumber
         if(businessAddress) getBuyer.businessAddress = businessAddress
         if(businessCategory) getBuyer.businessCategory = businessCategory
