@@ -233,7 +233,7 @@ export async function completeSellerOnboarding(req, res) {
         if(!sellerAccountTypeOptions.includes(sellerAccountType)) return sendResponse(res, 400, false, null, 'Invalid seller account type')
     }
     if(!name) return sendResponse(res, 400, false, null, 'Name is required')
-    if(!address) return sendResponse(res, 400, false, null, 'Address is not required')
+    //if(!address) return sendResponse(res, 400, false, null, 'Address is not required')
     if(!ninValue) return sendResponse(res, 400, false, null, 'National Identity is required')
     
     try {
@@ -263,8 +263,8 @@ export async function completeSellerOnboarding(req, res) {
             if(!businessType) return sendResponse(res, 400, false, null, 'Business Type is required')
             if(!businessRegistrationNumber) return sendResponse(res, 400, false, null, 'Business Registration number is required')
             if(!businessAddress) return sendResponse(res, 400, false, null, 'Business address is required')
-            if(!taxId) return sendResponse(res, 400, false, null, 'Business tax id is required')
-            if(!socialLink) return sendResponse(res, 400, false, null, 'Business social link is required')
+            //if(!taxId) return sendResponse(res, 400, false, null, 'Business tax id is required')
+            //if(!socialLink) return sendResponse(res, 400, false, null, 'Business social link is required')
         
             //verify businessRegistrationNumber nin
             const verifyBusiness = await VASBusinessVerification({ regNum: businessRegistrationNumber, entityType: entityType })
