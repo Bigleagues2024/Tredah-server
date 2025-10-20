@@ -2,6 +2,7 @@ import OtpModel from "../models/Otp.js";
 import UserModel from "../models/User.js";
 import cloudinary from "cloudinary";
 import multer from "multer";
+import { PassThrough } from "stream";
 
 // Configure Cloudinary
 cloudinary.v2.config({
