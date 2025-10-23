@@ -91,7 +91,9 @@ export async function register(req, res) {
             // Save customer_code to user document
             newUser.customerCode = customerRes.data.customer_code;
             await newUser.save();
-        } else {
+        } 
+
+        if(userType.trim().toLowerCase() === 'buyer') {
             await BuyerKycInfoModel.create({
                 accountId: userId,
                 buyerAccountType: buyerAccountType
@@ -125,14 +127,178 @@ export async function register(req, res) {
 }
 
 //register new user via google
-/**
- * create a tredahuserid and send via cookies
- * check if user exist login user else
- * recieve user email, name, userType, sellerAccountType, buyerAccountType
- * user proceed to onboarding screen
- */
 export async function googleAuth(req, res) {
-    
+    const { email, mobileNumber, imageUrl, name, userType, sellerAccountType, buyerAccountType } = req.body
+    const { country, region, city, deviceType, deviceInfo } = req.location || {}
+    if(!email) return sendResponse(res, 400, false, null, 'Email address is required')
+        
+    try {
+
+        const getUser = await UserModel.findOne({ email })
+        if(getUser) {
+            if(!getUser?.isOnBoardingComplete){
+                //create cookies tredahuserid
+                res.cookie('tredahuserid', getUser?.userId, {
+                    httpOnly: true,
+                    sameSite: 'None',
+                    secure: true,
+                    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+                });
+                sendResponse(res, 403, false, { isOnBoardingComplete: getUser?.isOnBoardingComplete }, 'Complete onboarding process')
+                return
+            }
+
+            //save user latest info
+            getUser.lastLoginInfo.unshift({
+                device: deviceInfo,
+                location: `${city} ${region} ${country}`,
+                deviceType: deviceType
+            });
+
+            // Limit history to the last 5 logins
+            getUser.lastLoginInfo = getUser.lastLoginInfo.slice(0, 5);
+            await getUser.save();
+
+            //send login email notification
+            const loginTime = moment(getUser.lastLogin, 'x'); // Convert timestamp to Moment.js date
+            
+            sendNewLoginEmail({
+                email: getUser?.email,
+                name: `${getUser?.name}`,
+                time: loginTime.format('YYYY-MM-DD HH:mm:ss'),
+                device: getUser.lastLoginInfo[0]
+            });
+
+            //set auth cookie
+            const accessToken = getUser.getAccessToken()
+            const refreshToken = getUser.getRefreshToken()
+            //refresh token
+            const refreshTokenExist = await RefreshTokenModel.findOne({ accountId: getUser.userId })
+            if(refreshTokenExist){
+                refreshTokenExist.refreshToken = refreshToken
+                await refreshTokenExist.save()
+            } else {
+                await RefreshTokenModel.create({
+                    accountId: getUser?.userId,
+                    refreshToken,
+                    userType: getUser?.userType,
+                    accountType: getUser?.accountType
+                })
+            }
+            ///set and send cookies
+            res.cookie('tredahtoken', accessToken, {
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days
+            });
+            res.cookie('tredahauthid', getUser?.userId, {
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+            });
+            //send user data
+            const { password: userPassword, verified, isBlocked, accountSuspended, noOfLoginAttempts, temporaryAccountBlockTime, resetPasswordToken, resetPasswordExpire, subscriptionPriceId, subscriptionId, _id, ...userData } = getUser._doc;
+            let getBusinessAccount
+            if(getUser?.userType === 'buyer') {
+                getBusinessAccount = await BuyerKycInfoModel.findOne({ accountId: getUser?.userId })
+            } else {
+                getBusinessAccount = await SellerKycInfoModel.findOne({ accountId: getUser?.userId })
+            }
+            const { accountId, nin, ...businessAccountInfo } = getBusinessAccount._doc
+            const data = {
+                ...userData,
+                ...businessAccountInfo
+            }
+            sendResponse(res, 201, true, data, 'Login Successful')
+            return
+        } else {
+            if(!userType) return sendResponse(res, 400, false, null, 'Account User type is required')
+
+            const generateUserId = await generateUniqueCode(9)
+            const userId = `TRD${generateUserId}`
+            
+            let newMobileNumber = false
+            //handle seller
+            if(userType.trim().toLowerCase() === 'seller' && sellerAccountType) {
+                if(!sellerAccountTypeOptions.includes(sellerAccountType.trim().toLowerCase())) return sendResponse(res, 400, false, null, 'Invalid seller account type')
+                if(mobileNumber) {
+                    //allow only nigeria number
+                    const verifyNumber = validateNigeriaNumber(mobileNumber)
+                    if(!verifyNumber.success) return sendResponse(res, 400, false, mobileNumber, verifyNumber.message)
+                    newMobileNumber = verifyNumber.number
+                }
+            }
+
+            //handle buyer
+            if(userType.trim().toLowerCase() === 'buyer' && buyerAccountType) {
+                if(!buyerAccountTypeOptions.includes(buyerAccountType)) return sendResponse(res, 400, false, null, 'Invalid buyer account type')
+                if(mobileNumber) {
+                    //allow only malaysia (asian countries)
+                    const verifyNumber = validateAsianNumber(mobileNumber)
+                    if(!verifyNumber.success) return sendResponse(res, 400, false, mobileNumber, verifyNumber.message)
+                    newMobileNumber = verifyNumber.number
+                }
+            }
+
+            //create new user
+            const newUser = await UserModel.create({
+                userId,
+                email,
+                userType: userType.trim().toLowerCase(),
+                name,
+                profileImg: imageUrl || '',
+                verified: true
+            })
+            if(newMobileNumber) {
+                newUser.mobileNumber = newMobileNumber
+                await newUser.save()
+            }
+
+            //create user corresponding account
+            if(userType.trim().toLowerCase() === 'seller' && sellerAccountType){
+                await SellerKycInfoModel.create({
+                    accountId: userId,
+                    sellerAccountType: sellerAccountType.trim().toLowerCase()
+                })
+
+                // Create Paystack customer
+                const { data: customerRes } = await paystack.post("/customer", {
+                    email: newUser.email,
+                    first_name: name || newUser.email,
+                    last_name: "",
+                });
+
+                // Save customer_code to user document
+                newUser.customerCode = customerRes.data.customer_code;
+                await newUser.save();
+            } 
+            
+            if(userType.trim().toLowerCase() === 'buyer' && buyerAccountType) {
+                await BuyerKycInfoModel.create({
+                    accountId: userId,
+                    buyerAccountType: buyerAccountType
+                })
+            }
+
+            //send cookies for onboarding
+            res.cookie('tredahuserid', newUser?.userId, {
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            });
+
+            sendResponse(res, 201, true, 'Account created. completed account onboarding', '')
+            return
+        }
+
+
+    } catch (error) {
+        console.log('UNABLE TO REGISTER USER VIA GOOGLE', error)
+        sendResponse(res, 500, false, null, 'Unable to register account')
+    }
 }
 
 //resend otp
@@ -257,6 +423,7 @@ export async function completeSellerOnboarding(req, res) {
         }
         const getSeller = await SellerKycInfoModel.findOne({ accountId: getUser?.userId })
         if(!getSeller) return sendResponse(res, 404, false, null, 'Seller account does not exist')
+        if(!getSeller?.sellerAccountType && !sellerAccountType) return sendResponse(res, 400, false, null, 'A Seller account type is required')
         
         if(sellerAccountType === 'business' || getSeller?.sellerAccountType === 'business'){
             if(!companyName) return sendResponse(res, 400, false, null, 'Company name is required')
@@ -271,7 +438,7 @@ export async function completeSellerOnboarding(req, res) {
         }
 
         getUser.name = name
-        //getUser.isActive = true
+        //getUser.isOnBoardingComplete = true
         await getUser.save()
 
         //save seller account info
@@ -287,7 +454,8 @@ export async function completeSellerOnboarding(req, res) {
         if(businessCategory) getSeller.businessCategory = businessCategory
         if(socialLink) getSeller.socialLink = socialLink
         if(entityType) getSeller.entityType = entityType
-        //getSeller.isActive = true
+        
+        getSeller.isOnBoardingComplete = true
         await getSeller.save()
 
         //send welcome message
@@ -373,7 +541,8 @@ export async function completeBuyerOnboarding(req, res) {
         }
         const getBuyer = await BuyerKycInfoModel.findOne({ accountId: getUser?.userId })
         if(!getBuyer) return sendResponse(res, 404, false, null, 'Buyer account does not exist')
-        
+        if(!getBuyer?.buyerAccountType && !buyerAccountType) return sendResponse(res, 400, false, null, 'A Buyer account type is required')
+
         //business account type is business verify business info
         if(buyerAccountType && buyerAccountType === 'business' || getBuyer?.buyerAccountType === 'business'){
             if(!companyName) return sendResponse(res, 400, false, null, 'Company name is required')
@@ -384,7 +553,7 @@ export async function completeBuyerOnboarding(req, res) {
         }
 
         getUser.name = name
-        getUser.isActive = true
+        getUser.isOnBoardingComplete = true
         await getUser.save()
 
         //save buyer account info
@@ -398,14 +567,14 @@ export async function completeBuyerOnboarding(req, res) {
         if(taxId) getBuyer.taxId = taxId
         if(socialLink) getBuyer.socialLink = socialLink
 
-        getBuyer.isActive = true
+        getBuyer.isOnBoardingComplete = true
         await getBuyer.save()
 
         //send welcome message
         sendWelcomeEmail({
             email: getUser?.email,
             name,
-            buttonLink: `${process.env.DEV_URL_ONE}`,
+            buttonLink: `${process.env.CLIENT_URL}`,
         })
 
         //clear cookie
@@ -474,6 +643,17 @@ export async function login(req, res) {
                 maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
             });
             sendResponse(res, 403, false, { verified: getUser?.verified }, 'Account is not yet verified')
+            return
+        }
+        if(!getUser?.isOnBoardingComplete){
+            //create cookies tredahuserid
+            res.cookie('tredahuserid', getUser?.userId, {
+                httpOnly: true,
+                sameSite: 'None',
+                secure: true,
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            });
+            sendResponse(res, 403, false, { isOnBoardingComplete: getUser?.isOnBoardingComplete }, 'Complete onboarding process')
             return
         }
         if(getUser?.isBlocked){

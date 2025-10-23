@@ -150,17 +150,21 @@ export async function getUser(req, res) {
 //update profile account owner
 export async function updateProfile(req, res) {
     const { userId } = req.user
-    const { accountName, accountNumber, bankName, name, imageUrl } = req.body
+    const { accountName, accountNumber, bankName, name, imageUrl, mobileNumber } = req.body
 
     try {
 
         const getUser = await UserModel.findOne({ userId })
+        const numberExist = await UserModel.findOne({ mobileNumber })
+        if(numberExist) return sendResponse(res, 400, false, null, 'mobile number already exist')
 
         if(accountName && typeof accountName !== 'undefined') getUser.accountName = accountName
         if(accountNumber && typeof accountNumber !== 'undefined') getUser.accountNumber = accountNumber
         if(bankName && typeof bankName !== 'undefined') getUser.bankName = bankName
         if(name && typeof name !== 'undefined') getUser.name = name
         if(imageUrl) getUser.profileImg = imageUrl
+        if(mobileNumber) getUser.mobileNumber = mobileNumber
+
 
         await getUser.save()
 

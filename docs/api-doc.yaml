@@ -385,6 +385,49 @@ paths:
         500:
           description: Server error
 
+  /auth/googleAuth:
+    post:
+      tags:
+        - Auth
+      summary: Google Auth
+      description: Endpoint for user to use google auth. email is required. userType = ['seller', 'buyer'] sellerAccountType = ['personal', 'business'] buyerAccountType = ['personal', 'business']
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            type: object
+            required:
+              - email
+              - name
+              - imageUrl
+              - mobileNumber
+              - userType
+              - sellerAccountType
+              - buyerAccountType
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+              confirmPassword:
+                type: string
+              mobileNumber:
+                type: string
+              userType:
+                type: string
+              sellerAccountType:
+                type: string
+              buyerAccountType:
+                type: string
+      responses:
+        200:
+          description: Success - OTP sent to registered email address
+        400:
+          description: User error
+        500:
+          description: Server error
+
 #UPLOAD
   /upload/:
     post:
@@ -437,6 +480,8 @@ paths:
               name:
                 type: string
               imageUrl:
+                type: string
+              mobileNumber:
                 type: string
       responses:
         200:

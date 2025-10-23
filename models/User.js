@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
     },
     mobileNumber: {
         type: String,
-        required: [ true, 'Mobile number is required' ]
+        //required: [ true, 'Mobile number is required' ]
     },
     accountType: {
         type: String,
@@ -85,9 +85,13 @@ const UserSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    isActive: {
+    isOnBoardingComplete: {
         type: Boolean,
         default: false
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     },
     isBlocked: {
         type: Boolean,

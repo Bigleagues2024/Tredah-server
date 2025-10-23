@@ -1,4 +1,4 @@
-import { sendResponse, uploadToCloudinary } from "../middlewares/utils.js";
+import { sendResponse, uploadToCloudinary } from "../middleware/utils.js";
 
 export async function upload(req, res) {
   const { media, medias } = req.files || {};
