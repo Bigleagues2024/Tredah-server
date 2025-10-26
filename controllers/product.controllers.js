@@ -4,6 +4,7 @@ import ProductModel from "../models/Product.js";
 import ProductCategoryModel from "../models/ProductCategory.js";
 import ProductReviewModel from "../models/ProductReview.js";
 import SellerKycInfoModel from "../models/SellerKycInfo.js";
+import StoreModel from "../models/StoreFront.js";
 import UserModel from "../models/User.js";
 
 export const findOrCreateCategories = async (categories) => {
@@ -27,9 +28,10 @@ export const findOrCreateCategories = async (categories) => {
 
 //new product
 export async function newProduct(req, res) {
-    const { userId, name: userName } = req.user    
+    const { userId, storeId, name: userName } = req.user    
     const { name, about, description, category, subCategory, displayPrice, weight, weightValue, moq, variant, quantityInStock, productImageUrl, mediaImagesUrls } = req.body
-    
+    const sellerId = storeId || userId
+
     if(!name) return sendResponse(res, 400, false, null, 'Product name is required')
     if(!description) return sendResponse(res, 400, false, null, 'Product description is required')
     if(!category) return sendResponse(res, 400, false, null, 'Product category is required')
@@ -56,10 +58,12 @@ export async function newProduct(req, res) {
         const newCode = await generateUniqueCode(9)
         const productId = `TRD${newCode}PR`
         const getSeller = await SellerKycInfoModel.findOne({ accountId: userId })
+        const getStore = await StoreModel.findOne({ sellerId: userId })
+
         const product = await ProductModel.create({
             userId: sellerId,
             productId,
-            storeName: getSeller?.companyName || userName,
+            storeName: getStore?.name || getSeller?.companyName || userName,
             name,
             about,
             description,
@@ -79,6 +83,9 @@ export async function newProduct(req, res) {
         getUser.productCount += 1
         await getUser.save()
 
+        getStore.productCount += 1
+        getStore.save()
+
         sendResponse(res, 201, true, product, 'New product created successful')
     } catch (error) {
         console.log('UNABLE TO CREATE NEW PRODUCT', error)
@@ -88,8 +95,9 @@ export async function newProduct(req, res) {
 
 //edit product
 export async function editProduct(req, res) {
-    const { userId } = req.user    
+    const { userId, storeId } = req.user    
     const { productId, name, about, description, category, subCategory, displayPrice, weight, weightValue, moq, variant, quantityInStock, productImageUrl, mediaImagesUrls } = req.body
+    const sellerId = storeId || userId
     
     if(!productId) return sendResponse(res, 400, false, null, 'Product Id is required')
     if(category) {
@@ -119,7 +127,7 @@ export async function editProduct(req, res) {
 
         const getProduct = await ProductModel.findOne({ productId })
         if(!getProduct) return sendResponse(res, 404, false, null, 'Product with this Id does not exist')
-        if(getProduct.sellerId !== userId) return sendResponse(res, 405, false, null, 'Not Allowed')
+        if(getProduct.sellerId !== sellerId) return sendResponse(res, 405, false, null, 'Not Allowed')
 
         if(name) getProduct.name = name
         if(about) getProduct.about = about
@@ -778,7 +786,7 @@ export async function getAllProducts(req, res) {
 
 //get product of a store owner (admin and owner)
 export async function getSellerProducts(req, res) {
-    const { userId, adminId } = req.user
+    const { userId, storeId, adminId } = req.user
   const {
     limit = 10,
     page = 1,
@@ -796,7 +804,7 @@ export async function getSellerProducts(req, res) {
   } = req.query;
 
   const { sellerId: accountId } = req.params || {};
-  const sellerId = accountId || userId
+  const sellerId = accountId || storeId || userId
   if (!sellerId) return sendResponse(res, 400, false, null, 'Seller ID is required');
 
   const parsedLimit = Number(limit);
@@ -942,14 +950,16 @@ export async function getSellerProducts(req, res) {
 
 //get a product (admin and owner)
 export async function getAProduct(req, res) {
-    const { adminId, userId } = req.user
+    const { adminId, storeId, userId } = req.user
     const { productId } = req.params
+    const sellerId = storeId || userId
+
     if(!productId) return sendResponse(res, 400, false, null, 'Product Id is required')
 
         try {
         const getProduct = await ProductModel.findOne({ productId }).select('-__v -_id')
         if(!getProduct) return sendResponse(res, 404, false, 'Product not found')
-        if(!adminId && userId !== getProduct.sellerId) return sendResponse(res, 405, false, null, 'Not allowed')
+        if(!adminId && sellerId !== getProduct.sellerId) return sendResponse(res, 405, false, null, 'Not allowed')
         
         //rating
         const productReview = await ProductReviewModel.findOne({ productId })
@@ -1028,14 +1038,16 @@ export async function unBlockProduct(req, res) {
 
 //delete product (owner)
 export async function deleteProduct(req, res) {
-    const { userId } = req.user
+    const { userId, storeId } = req.user
     const { productId } = req.body
+    const sellerId = storeId || userId
+
     if(!productId) return sendResponse(res, 400, false, null, 'Product Id is required')
 
     try {
         const getProduct = await ProductModel.findOne({ productId })
         if(!getProduct) return sendResponse(res, 400, false, null, 'Product does not exist')
-        if(getProduct.sellerId !== userId) return sendResponse(res, 405, false, null, 'Not Allowed')
+        if(getProduct.sellerId !== sellerId) return sendResponse(res, 405, false, null, 'Not Allowed')
 
         if(getProduct.noOfSales > 0){
             getProduct.active = false
@@ -1046,6 +1058,11 @@ export async function deleteProduct(req, res) {
         }
 
         await ProductModel.deleteOne({ productId })
+        const getStore = await StoreModel.findOne({ sellerId: userId })
+        if(getStore){
+            getStore.productCount -= 1
+            await productCount.save()
+        }
         sendResponse(res, 200, true, null, 'Product deleted')
     } catch (error) {
         console.log('UNABLE TO DELETE PRODUCT', error)
@@ -1055,14 +1072,16 @@ export async function deleteProduct(req, res) {
 
 //deactivate product (owner of product)
 export async function deActivateProduct(req, res) {
-    const { userId } = req.user
+    const { userId, storeId } = req.user
+    const sellerId = storeId || userId
+
     const { productId } = req.body
     if(!productId) return sendResponse(res, 400, false, null, 'Product Id is required')
     
     try {
         const getProduct = await ProductModel.findOne({ productId })
         if(!getProduct) return sendResponse(res, 404, false, null, 'Product does not exist')       
-        if(userId !== getProduct.sellerId) return sendResponse(res, 405, false, null, 'Not allowed')
+        if(sellerId !== getProduct.sellerId) return sendResponse(res, 405, false, null, 'Not allowed')
         
         getProduct.active = false
         await getProduct.save()
@@ -1083,14 +1102,15 @@ export async function deActivateProduct(req, res) {
 
 //active product (owner of product)
 export async function activateProduct(req, res) {
-    const { userId } = req.user
+    const { userId, storeId} = req.user
+    const sellerId = storeId || userId
     const { productId } = req.body
     if(!productId) return sendResponse(res, 400, false, null, 'Product Id is required')
     
     try {
         const getProduct = await ProductModel.findOne({ productId })
         if(!getProduct) return sendResponse(res, 404, false, null, 'Product does not exist')   
-        if(userId !== getProduct.sellerId) return sendResponse(res, 405, false, null, 'Not allowed')
+        if(sellerId !== getProduct.sellerId) return sendResponse(res, 405, false, null, 'Not allowed')
 
         
         getProduct.active = true

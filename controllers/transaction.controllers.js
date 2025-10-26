@@ -6,10 +6,11 @@ import { Readable } from "stream";
 import archiver from "archiver";
 
 export async function getTransactionsSummary(req, res) {
-    const { userId, userType } = req.user;
+    const { userId: ownerId, storeId, userType } = req.user;
     const isSeller = userType.toLowerCase() === "seller";
     const { period = 'month' } = req.params; // today, week, month, year, all, custom
     const { start, end, days } = req.query;
+    const userId = storeId || ownerId
 
     try {
         const query = {
@@ -100,8 +101,9 @@ export async function getTransactionsSummary(req, res) {
 
 //get all transactions histroy of a user
 export async function getTransactionsHistroy(req, res) {
-    const { userId, userType } = req.user;
+    const { userId: ownerId, storeId, userType } = req.user;
     const isSeller = userType.toLowerCase() === "seller";
+    const userId = storeId || ownerId
 
     const {
         limit = 10,
@@ -325,9 +327,10 @@ export async function getTransaction(req, res) {
 
 //export transactions (pdf or csv file)
 export async function exportTransactionHistroy(req, res) {
-    const { userId, userType } = req.user;
+    const { userId: ownerId, storeId, userType } = req.user;
     const isSeller = userType.toLowerCase() === "seller";
     const { transactionId, period, start, end, days } = req.body;
+    const userId = storeId || ownerId
 
     try {
         const query = {

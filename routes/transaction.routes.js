@@ -2,14 +2,14 @@ import express from 'express'
 import * as controllers from '../controllers/transaction.controllers.js'
 import { getLocation } from '../middleware/location.js'
 import { uploadMiddleware } from '../middleware/utils.js'
-import { AllowedUserType, AuthenticateUser } from '../middleware/auth/user-auth.js'
+import { AllowedStoreStaff, AllowedUserType, AuthenticateUser } from '../middleware/auth/user-auth.js'
 import { AuthenticateAdmin, PermissionsRole } from '../middleware/auth/admin-auth.js'
 
 const router = express.Router()
 
 //POST
 router.post('/requestRefund', AuthenticateUser, controllers.requestRefund)
-router.post('/export', AuthenticateUser, controllers.exportTransactionHistroy)
+router.post('/export', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.exportTransactionHistroy)
 
 //post public
 
@@ -18,9 +18,9 @@ router.post('/export', AuthenticateUser, controllers.exportTransactionHistroy)
 
 
 //GET
-router.get('/summary', AuthenticateUser, controllers.getTransactionsSummary)
-router.get('/history', AuthenticateUser, controllers.getTransactionsHistroy)
-router.get('/transactionDetail/:transactionId', AuthenticateUser, controllers.getTransaction)
+router.get('/summary', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransactionsSummary)
+router.get('/history', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransactionsHistroy)
+router.get('/transactionDetail/:transactionId', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransaction)
 
 //get methods store
 

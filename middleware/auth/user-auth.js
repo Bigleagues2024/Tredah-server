@@ -1,4 +1,5 @@
 import RefreshTokenModel from "../../models/RefreshToken.js";
+import StoreStaffModel from "../../models/StoreStaff.js";
 import UserModel from "../../models/User.js";
 import { sendResponse } from "../utils.js";
 import jwt from "jsonwebtoken";
@@ -21,6 +22,9 @@ export const AuthenticateUser = async (req, res, next) => {
                 if (decoded.accountType === 'user') {
                     user = await UserModel.findOne({ userId: decoded.id });
                 }
+                if (decoded.accountType === 'storeStaff') {
+                    user = await StoreStaffModel.findOne({ userId: decoded.id });
+                }
 
                 if (!user) {
                     return sendResponse(res, 404, false, 'User not found');
@@ -33,7 +37,11 @@ export const AuthenticateUser = async (req, res, next) => {
             } catch (error) {
                 if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
                     if (accountId) {
-                        user = await UserModel.findOne({ userId: accountId });
+                        if(accountId.endsWith('STF')) {
+                            user = await StoreStaffModel.findOne({ userId: accountId }); 
+                        } else {
+                            user = await UserModel.findOne({ userId: accountId }); 
+                        }
                         const refreshTokenExist = await RefreshTokenModel.findOne({ accountId });
 
                         if (user && refreshTokenExist) {
@@ -54,7 +62,11 @@ export const AuthenticateUser = async (req, res, next) => {
                 }
             }
         } else if (accountId) {
-            user = await UserModel.findOne({ userId: accountId });
+            if(accountId.endsWith('STF')) {
+                user = await StoreStaffModel.findOne({ userId: accountId });
+            } else {
+                user = await UserModel.findOne({ userId: accountId });
+            }
             const refreshTokenExist = await RefreshTokenModel.findOne({ accountId });
 
             if (user && refreshTokenExist) {
@@ -119,6 +131,31 @@ export const AuthenticateUser = async (req, res, next) => {
     };
   };
 
+//handle staff authorization
+export const AllowedStoreStaff = (allowedStoreStaffPermission = []) => {
+  return (req, res, next) => {
+    // Skip if user is not a store staff
+    if (req.user?.accountType !== 'storeStaff') {
+      return next();
+    }
+
+    const userPermissions = req.user?.permission || [];
+
+    // Check if any of the allowed permissions exist in user's permissions
+    const hasPermission = allowedStoreStaffPermission.some(permission =>
+      userPermissions.includes(permission)
+    );
+
+    if (!hasPermission) {
+      return sendResponse(
+        res, 403, false, null, 'You do not have permission to access this resource'
+      );
+    }
+
+    next();
+  };
+};
+
 //handle subscription
 
 export const AuthenticateUserSocket = async (socket, next) => {
@@ -161,7 +198,11 @@ export const AuthenticateUserSocket = async (socket, next) => {
                 if (decoded.accountType === 'user') {
                     user = await UserModel.findOne({ userId: decoded.id });
                     accountType = 'user';
-                } else {
+                } else if (decoded.accountType === 'storeStaff') {
+                    user = await StoreStaffModel.findOne({ userId: decoded.id });
+                    accountType = 'storeStaff';
+                }
+                else {
                     return next(new Error('Invalid user account type'));
                 }
 
@@ -193,8 +234,14 @@ export const AuthenticateUserSocket = async (socket, next) => {
         }
 
         if (accountId) {
-            user = await UserModel.findOne({ userId: accountId });
-            accountType = 'user';
+            if(accountId.endsWith('STF')) {
+                user = await StoreStaffModel.findOne({ userId: accountId });
+                accountType = 'storeStaff';
+
+            } else {
+                user = await UserModel.findOne({ userId: accountId });
+                accountType = 'user';
+            }
 
             const refreshTokenExist = await RefreshTokenModel.findOne({ accountId: accountId });
 
@@ -220,4 +267,27 @@ export const AuthenticateUserSocket = async (socket, next) => {
         console.error('Authentication error:', error);
         return next(new Error('Server error during authentication'));
     }
+};
+
+//handle staff socket authorization
+export const AllowedSocketStoreStaff = (allowedStoreStaffPermission = []) => {
+  return (socket, next) => {
+    // Skip if user is not a store staff
+    if (socket.user?.accountType !== 'storeStaff') {
+      return next();
+    }
+
+    const userPermissions = socket.user?.permission || [];
+
+    // Check if any of the allowed permissions exist in user's permissions
+    const hasPermission = allowedStoreStaffPermission.some(permission =>
+      userPermissions.includes(permission)
+    );
+
+    if (!hasPermission) {
+        return next(new Error('You do not have permission to access this resource'));
+    }
+
+    next();
+  };
 };

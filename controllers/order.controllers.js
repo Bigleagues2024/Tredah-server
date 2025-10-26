@@ -8,7 +8,7 @@ import { subDays } from "date-fns";
 
 //new order
 export async function newOrder(req, res) {
-    const { userId: sellerId, name } = req.user
+    const { userId, storeId, name } = req.user
     const { buyerEmail, amount, productId, quantity } = req.body
     if(!buyerEmail) return sendResponse(res, 400, false, null, 'Buyer Email address is required')
     if(!amount) return sendResponse(res, 400, false, null, 'Amount is required')
@@ -17,6 +17,7 @@ export async function newOrder(req, res) {
     if(!quantity) return sendResponse(res, 400, false, null, 'Quantity is required')
     if(typeof quantity !== 'number') return sendResponse(res, 400, false, null, 'Quantity must be a number')
 
+    const sellerId = storeId || userId
     try {
         //check if product exist
         const productExist = await ProductModel.findOne({ productId })
@@ -64,7 +65,7 @@ export async function newOrder(req, res) {
 
 //edit order only before payment is made
 export async function editOrder(req, res) {
-    const { userId: sellerId, name } = req.user
+    const { userId, storeId, name } = req.user
     const { orderId, buyerEmail, amount, productId, quantity } = req.body
     if(!orderId) return sendResponse(res, 400, false, null, 'Order is required')
     if(amount) {
@@ -73,6 +74,7 @@ export async function editOrder(req, res) {
     if(quantity) {
         if(typeof quantity !== 'number') return sendResponse(res, 400, false, null, 'Quantity must be a number')
     }
+    const sellerId = storeId || userId
 
     try {
         const getOrder = await OrderModel.findOne({ orderId })
@@ -123,8 +125,10 @@ export async function editOrder(req, res) {
 
 //get all orders of a (buyer or seller)
 export async function getordersHistory(req, res) {
-    const { userId, userType } = req.user;
+    const { userId: ownerId, storeId, userType } = req.user;
     const isSeller = userType.toLowerCase() === "seller";
+
+    const userId = storeId || ownerId
 
     const {
         limit = 10,
@@ -359,13 +363,15 @@ export async function makePayment(req, res) {
 
 //approve order payment by admin (manual use case)
 
+//update order status by admin (manual use case)
+
 //fetch order summary
 export async function getOrderSummary(req, res) {
-    const { userId, userType } = req.user;
+    const { userId: ownerId, storeId, userType } = req.user;
     const isSeller = userType.toLowerCase() === "seller";
     const { period = 'month' } = req.params; // today, week, month, year, all, custom
     const { start, end, days } = req.query;
-
+    const userId = storeId || ownerId
     try {
         let query = {};
 

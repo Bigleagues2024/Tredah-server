@@ -6,8 +6,9 @@ import cron from "node-cron";
 
 //create/update store front (owner) - subscribed owner
 export async function updateStoreDetails(req, res) {
-    const { userId: sellerId } = req.user
+    const { userId, storeId } = req.user
     const { storeImg, name, about, description, businessAddress, socialLink } = req.body
+    const sellerId = storeId || userId
 
     try {
         let storeData
@@ -507,3 +508,4 @@ cron.schedule("*/10 * * * *", () => {
   console.log("Running autoDeactivateStore job...");
   autoDeactivateStore();
 });
+

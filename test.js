@@ -1,4 +1,8 @@
 import axios from "axios";
+import { config } from "dotenv";
+config()
+import EasyPostClient from '@easypost/api';
+const client = new EasyPostClient('EZTK1b0e47b983ae42b1bfc0ac1611ffcbdeanUNoZYlZjxbw6CNj6HMew');
 
 const API_URL = "https://paygw.globalpay.com.ng/globalpay-paymentgateway/api/paymentgateway/generate-payment-link";
 const MERCHANT_QUERY_API_URL = "https://paygw.globalpay.com.ng/globalpay-paymentgateway/api/paymentgateway/query-single-transaction-by-merchant-reference"
@@ -78,20 +82,26 @@ export async function verifyPayment() {
 
 //VAS BUSINESS VERIFICATION
 
-const CAC_VAS_URL = "https://vasapp.cac.gov.ng/api/vas/validation/company";
-const VAS_API_KEY = process.env.CAC_VAS_API_KEY; // store in .env for security
+//const CAC_VAS_URL = "https://vasapp.cac.gov.ng/api/vas/validation/company";
+//const CAC_VAS_URL = 'https://vasapp.cac.gov.ng/api/vas/validation/company/rc'
+const CAC_VAS_URL = 'https://vasapp.cac.gov.ng/api/vas/validation/company'
+
+const VAS_API_KEY = '$2a$10$STLA2fVo0SGPW.//b.4fq.Hv2NNk/2aF2qPG.g9/1G/fU01VPB6X2'; 
 
 export async function VASBusinessVerification({ regNum, entityType = "INCORPORATED_TRUSTEE" }) {
   try {
+    if (!VAS_API_KEY) {
+      throw new Error("CAC_VAS_API_KEY not found in environment variables");
+    }
+
     const payload = {
       rc_number: regNum,
       entity_type: entityType,
     };
 
     const headers = {
-      "Content-Type": "application/json",
-      "X_API_KEY": '$2a$10$OYpWp82BQkOKloMsk12UyOs04w1Z61ONVvYMNikFYAecyjl9N22lW',
-      //"x-api-key": '$2a$10$OYpWp82BQkOKloMsk12UyOs04w1Z61ONVvYMNikFYAecyjl9N22lW',
+        "Content-Type": "application/json",
+        "X-API-KEY": VAS_API_KEY,
     };
 
     const { data } = await axios.post(CAC_VAS_URL, payload, { headers });
@@ -102,7 +112,8 @@ export async function VASBusinessVerification({ regNum, entityType = "INCORPORAT
     return { success: false, message: error.response?.data?.message || "Failed to verify business" }
   }
 }
-VASBusinessVerification({ regNum: '35147935' })
+//VASBusinessVerification({ regNum: '35147935' })
+//VASBusinessVerification({ regNum: '7214181' })
 
 
 
@@ -110,25 +121,25 @@ VASBusinessVerification({ regNum: '35147935' })
 /******** EASY POST LOGISTICS API  ********** */
 async function getRates() {
   const shipment = await client.Shipment.create({
-    to_address: {
-      name: 'Dr. Steve Brule',
-      street1: '525 8 Ave SW',
-      city: 'Calgary',
-      state: 'AB',
-      zip: 'T2P 1G1',
-      country: 'CA',
-      phone: '4035559999',
-    },
-    from_address: {
-      company: 'EasyPost Canada',
-      street1: '100 King St W',
-      street2: 'Suite 6200',
-      city: 'Toronto',
-      state: 'ON',
-      zip: 'M5X 1B8',
-      country: 'CA',
-      phone: '4161234567',
-    },
+to_address: {
+  name: 'Mr. Amir Rahman',
+  street1: '15 Jalan Tun Razak',
+  city: 'Kuala Lumpur',
+  state: 'WP',
+  zip: '50400',
+  country: 'MY',
+  phone: '60123456789',
+},
+from_address: {
+  company: 'EasyPost Nigeria',
+  street1: '12 Allen Avenue',
+  street2: 'Suite 5B',
+  city: 'Ikeja',
+  state: 'LA',
+  zip: '100001',
+  country: 'NG',
+  phone: '2349012345677',
+},
     parcel: {
       length: 8,
       width: 5,
@@ -150,7 +161,9 @@ async function getRates() {
 }
 
 // Example usage
-//getRates().then(console.log).catch(console.error);
+const rates = await getRates()
+console.log('RATESS', rates )
+
 
 async function buyShipment(shipmentId, selectedRateId) {
   // Retrieve the shipment from EasyPost

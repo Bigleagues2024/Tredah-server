@@ -28,6 +28,10 @@ const StoreSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    productCount: {
+        type: Number,
+        default: 0
+    },
 
     followers: {
         type: Array,

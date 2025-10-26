@@ -8,8 +8,9 @@ import NotificationModel from "../models/Notification.js";
 
 //get user all chat contacts
 export async function getChats({ socket = {}, data = {} }) {
-  const { userId, userType } = socket.user;
+  const { userId: ownerId, storeId, userType } = socket.user;
   const isSeller = userType.toLowerCase() === "seller";
+    const userId = storeId || ownerId
 
   try {
     // get all chats where this user is either the seller or buyer
@@ -60,9 +61,10 @@ export async function getChats({ socket = {}, data = {} }) {
 
 //get a chat history
 export async function getChatHistroy({ socket = {}, data = {} }) {
-    const { userId, userType } = socket.user
+    const { userId: ownerId, storeId, userType } = socket.user
     const { chatId } = data
     const isSeller = userType.toLowerCase() === "seller" ? true : false;
+    const userId = storeId || ownerId
 
     if(!chatId) {
         socket.emit('getChatHistroy', { success: false, data: null, message: 'Chat Id is required' })
@@ -87,9 +89,10 @@ export async function getChatHistroy({ socket = {}, data = {} }) {
 
 //message a user
 export async function sendMessage({ socket = {}, data = {} }) {
-  const { userId: senderId, userType, name, profileImg } = socket.user;
+  const { userId: ownerId, storeId, userType, name, profileImg } = socket.user;
   const { receiverId, message, mediaLink } = data;
   const isSeller = userType.toLowerCase() === "seller" ? true : false;
+    const senderId = storeId || ownerId
 
   if (!message && !mediaLink) {
     socket.emit("sendMessage", {
@@ -202,8 +205,9 @@ export async function sendMessage({ socket = {}, data = {} }) {
 
 //edit a message
 export async function editMessage({ socket = {}, data = {} }) {
-  const { userId } = socket.user;
+  const { userId: ownerId, storeId } = socket.user;
   const { chatId, messageId, newMessage } = data;
+    const userId = storeId || ownerId
 
   if (!chatId || !messageId || !newMessage) {
     socket.emit("editMessage", {
@@ -263,8 +267,9 @@ export async function editMessage({ socket = {}, data = {} }) {
 
 // delete a message
 export async function deleteMessage({ socket = {}, data = {} }) {
-  const { userId } = socket.user;
+  const { userId: ownerId, storeId } = socket.user;
   const { chatId, messageId } = data;
+    const userId = storeId || ownerId
 
   if (!chatId || !messageId) {
     socket.emit("deleteMessage", {

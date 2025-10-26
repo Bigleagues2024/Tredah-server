@@ -2,17 +2,17 @@ import express from 'express'
 import * as controllers from '../controllers/product.controllers.js'
 import { getLocation } from '../middleware/location.js'
 import { uploadMiddleware } from '../middleware/utils.js'
-import { AllowedUserType, AuthenticateUser } from '../middleware/auth/user-auth.js'
+import { AllowedStoreStaff, AllowedUserType, AuthenticateUser } from '../middleware/auth/user-auth.js'
 import { AuthenticateAdmin, PermissionsRole } from '../middleware/auth/admin-auth.js'
 
 const router = express.Router()
 
 //POST
-router.post('/newProduct', AuthenticateUser, AllowedUserType(['seller']), controllers.newProduct)
-router.post('/editProduct', AuthenticateUser, AllowedUserType(['seller']), controllers.editProduct)
-router.post('/deleteProduct', AuthenticateUser, AllowedUserType(['seller']), controllers.deleteProduct)
-router.post('/deActivateProduct', AuthenticateUser, AllowedUserType(['seller']), controllers.deActivateProduct)
-router.post('/activateProduct', AuthenticateUser, AllowedUserType(['seller']), controllers.activateProduct)
+router.post('/newProduct', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.newProduct)
+router.post('/editProduct', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.editProduct)
+router.post('/deleteProduct', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.deleteProduct)
+router.post('/deActivateProduct', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.deActivateProduct)
+router.post('/activateProduct', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.activateProduct)
 
 //post public
 router.post('/rateProduct', AuthenticateUser, controllers.rateProduct)
@@ -35,8 +35,8 @@ router.get('/getProductReview/:productId', controllers.getProductReview)
 router.get('/getSavedProduct', AuthenticateUser, controllers.getSavedProduct)
 
 //get methods store
-router.get('/getStoreProduct', AuthenticateUser, AllowedUserType(['seller']), controllers.getSellerProducts) //for store owner get all products
-router.get('/getProductDetail/productId', AuthenticateUser, AllowedUserType(['seller']), controllers.getAProduct) //for store owner get a product detail
+router.get('/getStoreProduct', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.getSellerProducts) //for store owner get all products
+router.get('/getProductDetail/productId', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.getAProduct) //for store owner get a product detail
 
 
 //get methods admin

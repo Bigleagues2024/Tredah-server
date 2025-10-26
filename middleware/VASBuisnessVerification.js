@@ -1,8 +1,11 @@
 import axios from "axios";
+import { config } from "dotenv";
+config()
 
-const CAC_VAS_URL = "https://vasapp.cac.gov.ng/api/vas/validation/company";
+//const CAC_VAS_URL = "https://vasapp.cac.gov.ng/api/vas/validation/company";
+const CAC_VAS_URL = 'https://vasapp.cac.gov.ng/api/vas/validation/company/rc'
 const VAS_API_KEY = process.env.CAC_VAS_API_KEY; 
-
+console.log('VAS',VAS_API_KEY)
 export async function VASBusinessVerification({ regNum, entityType = "INCORPORATED_TRUSTEE" }) {
   try {
     const payload = {
@@ -11,8 +14,9 @@ export async function VASBusinessVerification({ regNum, entityType = "INCORPORAT
     };
 
     const headers = {
-      "Content-Type": "application/json",
-      "X_API_KEY": VAS_API_KEY,
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${VAS_API_KEY}`,
+        "X-API-KEY": VAS_API_KEY,
     };
 
     const { data } = await axios.post(CAC_VAS_URL, payload, { headers });

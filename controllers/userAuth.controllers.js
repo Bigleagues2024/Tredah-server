@@ -62,7 +62,7 @@ export async function register(req, res) {
         }
 
         const generateUserId = await generateUniqueCode(9)
-        const userId = `TRD${generateUserId}`
+        const userId = `TRD${generateUserId}USR`
 
         //create new user
         const newUser = await UserModel.create({
@@ -434,11 +434,11 @@ export async function completeSellerOnboarding(req, res) {
             //if(!socialLink) return sendResponse(res, 400, false, null, 'Business social link is required')
         
             //verify businessRegistrationNumber nin
-            const verifyBusiness = await VASBusinessVerification({ regNum: businessRegistrationNumber, entityType: entityType })
+            //const verifyBusiness = await VASBusinessVerification({ regNum: businessRegistrationNumber, entityType: entityType })
         }
 
         getUser.name = name
-        //getUser.isOnBoardingComplete = true
+        getUser.isOnBoardingComplete = true
         await getUser.save()
 
         //save seller account info
@@ -455,7 +455,7 @@ export async function completeSellerOnboarding(req, res) {
         if(socialLink) getSeller.socialLink = socialLink
         if(entityType) getSeller.entityType = entityType
         
-        getSeller.isOnBoardingComplete = true
+        //getSeller.isOnBoardingComplete = true
         await getSeller.save()
 
         //send welcome message
@@ -498,8 +498,8 @@ export async function completeSellerOnboarding(req, res) {
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         });
         //send user data
-        const { password: userPassword, verified, isBlocked, accountSuspended, noOfLoginAttempts, temporaryAccountBlockTime, resetPasswordToken, resetPasswordExpire, subscriptionPriceId, subscriptionId, _id, ...userData } = getUser._doc;
-        const { accountId, nin, ...sellerInfo } = getSeller._doc
+        const { password: userPassword, verified, isBlocked, accountSuspended, noOfLoginAttempts, temporaryAccountBlockTime, resetPasswordToken, resetPasswordExpire, subscriptionPriceId, subscriptionId, _id, __v, ...userData } = getUser._doc;
+        const { accountId, _id: sellerId, nin, ...sellerInfo } = getSeller._doc
         const data = {
             ...userData,
             ...sellerInfo
@@ -567,7 +567,7 @@ export async function completeBuyerOnboarding(req, res) {
         if(taxId) getBuyer.taxId = taxId
         if(socialLink) getBuyer.socialLink = socialLink
 
-        getBuyer.isOnBoardingComplete = true
+        //getBuyer.isOnBoardingComplete = true
         await getBuyer.save()
 
         //send welcome message
@@ -937,6 +937,9 @@ export async function dele(req, res) {
             const {email} = req.body
 
             const deleteUser = await UserModel.findOneAndDelete({ email })
+            //const deleteUser = await UserModel.findOne({ email })
+            //deleteUser.isActive = true
+            //await deleteUser.save()
             if(!deleteUser) return sendResponse(res, 404, false, null, 'User with this email does not exist')
 
             sendResponse(res, 200, true, null, `User with email ${email} deleted successfully`)

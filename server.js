@@ -106,7 +106,7 @@ app.use('/api/api-doc', swaggerGeneralUI, swaggerUI.setup(swaggerGeneralJSDocs, 
 
 import { sendResponse } from "./middleware/utils.js";
 //SOCKET.IO
-import { AuthenticateUserSocket } from "./middleware/auth/user-auth.js";
+import { AllowedSocketStoreStaff, AuthenticateUserSocket } from "./middleware/auth/user-auth.js";
 
 import * as messageChat from './controllers/chat.controllers.js';
 import * as orderExchangeChat from './controllers/orderContractExchanges.controllers.js';
@@ -118,6 +118,8 @@ export const generalConnections = new Map()
 
 // Apply socket-specific authentication middleware for General
 generalNamespace.use(AuthenticateUserSocket);
+generalNamespace.use(AllowedSocketStoreStaff(['customerSupport']));
+
 generalNamespace.on('connection', (socket) => {
   console.log('USER CONNECTED:', socket.id);
 
@@ -156,6 +158,8 @@ export const orderConnections = new Map()
 
 // Apply socket-specific authentication middleware for order namespace
 orderNamespace.use(AuthenticateUserSocket);
+orderNamespace.use(AllowedSocketStoreStaff(['orderContract']));
+
 orderNamespace.on('connection', (socket) => {
   console.log('USER CONNECTED:', socket.id);
 

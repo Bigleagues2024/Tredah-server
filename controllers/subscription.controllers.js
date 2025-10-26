@@ -233,8 +233,9 @@ export async function toggleSubscriptionPlan(req, res) {
 
 //make subscription
 export async function makeSubscription(req, res) {
-    const { userId } = req.user;
+    const { userId: ownerId, storeId } = req.user;
     const { id } = req.body;
+    const userId = storeId || ownerId
 
   try {
     const subscription = await SubscriptionPlanModel.findById(id);

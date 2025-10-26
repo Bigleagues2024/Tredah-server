@@ -2,13 +2,13 @@ import express from 'express'
 import * as controllers from '../controllers/seller.controllers.js'
 import { getLocation } from '../middleware/location.js'
 import { uploadMiddleware } from '../middleware/utils.js'
-import { AllowedUserType, AuthenticateUser } from '../middleware/auth/user-auth.js'
+import { AllowedStoreStaff, AllowedUserType, AuthenticateUser } from '../middleware/auth/user-auth.js'
 import { AuthenticateAdmin, PermissionsRole } from '../middleware/auth/admin-auth.js'
 
 const router = express.Router()
 
 //POST
-router.post('/updateStoreDetails', AuthenticateUser, AllowedUserType(['seller']), controllers.updateStoreDetails) //subscription protected endpoint
+router.post('/updateStoreDetails', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['store']), controllers.updateStoreDetails) //subscription protected endpoint
 
 //post public
 router.post('/rateStore', AuthenticateUser, controllers.rateStore)
