@@ -2,7 +2,7 @@ import axios from "axios";
 import { config } from "dotenv";
 config()
 import EasyPostClient from '@easypost/api';
-const client = new EasyPostClient('EZTK1b0e47b983ae42b1bfc0ac1611ffcbdeanUNoZYlZjxbw6CNj6HMew');
+const client = new EasyPostClient(`${process.env.EASYPOST_API_KEY}`);
 
 const API_URL = "https://paygw.globalpay.com.ng/globalpay-paymentgateway/api/paymentgateway/generate-payment-link";
 const MERCHANT_QUERY_API_URL = "https://paygw.globalpay.com.ng/globalpay-paymentgateway/api/paymentgateway/query-single-transaction-by-merchant-reference"
