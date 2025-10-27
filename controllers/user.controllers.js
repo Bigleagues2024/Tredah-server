@@ -223,7 +223,7 @@ export async function updatePassword(req, res) {
 //update buyer info
 export async function updateBuyerInfo(req, res) {
     const { userId } = req.user || {}
-    const { buyerAccountType, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, businessImage, socialLink } = req.body
+    const { buyerAccountType, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, businessImage, socialLink, taxId } = req.body
 
     try {
         let getUser
@@ -247,6 +247,7 @@ export async function updateBuyerInfo(req, res) {
         if(businessCategory) getBuyer.businessCategory = businessCategory
         if(businessImage) getBuyer.businessImage = businessImage
         if(socialLink) getBuyer.socialLink = socialLink
+        if(taxId) getBuyer.taxId = taxId
 
         if(!getBuyer.isActive) {
             if(businessRegistrationNumber) getBuyer.businessRegistrationNumber = businessRegistrationNumber

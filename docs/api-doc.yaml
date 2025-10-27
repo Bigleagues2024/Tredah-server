@@ -590,6 +590,8 @@ paths:
                 type: string
               socialLink:
                 type: string
+              taxId:
+                type: string
       responses:
         200:
           description: Success
