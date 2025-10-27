@@ -204,8 +204,8 @@ export async function updatePassword(req, res) {
         const getUser = await UserModel.findOne({ userId })
         
         //verify old password
-        const validateOldPassword = await getUser.matchPassword(oldPassword)
-        if(!validateOldPassword) return sendResponse(res, 400, false, null, 'Old password is incorrect')
+        //const validateOldPassword = await getUser.matchPassword(oldPassword)
+        //if(!validateOldPassword) return sendResponse(res, 400, false, null, 'Old password is incorrect')
 
         const validateNewPassword = await getUser.matchPassword(password)
         if(validateNewPassword) return sendResponse(res, 400, false, null, 'Please use a different new password')
@@ -223,7 +223,7 @@ export async function updatePassword(req, res) {
 //update buyer info
 export async function updateBuyerInfo(req, res) {
     const { userId } = req.user || {}
-    const { buyerAccountType, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory } = req.body
+    const { buyerAccountType, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessCategory, businessImage, socialLink } = req.body
 
     try {
         let getUser
@@ -245,6 +245,8 @@ export async function updateBuyerInfo(req, res) {
         if(businessType) getBuyer.businessType = businessType
         if(businessAddress) getBuyer.businessAddress = businessAddress
         if(businessCategory) getBuyer.businessCategory = businessCategory
+        if(businessImage) getBuyer.businessImage = businessImage
+        if(socialLink) getBuyer.socialLink = socialLink
 
         if(!getBuyer.isActive) {
             if(businessRegistrationNumber) getBuyer.businessRegistrationNumber = businessRegistrationNumber
@@ -276,7 +278,7 @@ export async function updateBuyerInfo(req, res) {
 //update seller info
 export async function updateSellerInfo(req, res) {
     const { userId } = req.user || {}
-    const { email, nin: ninValue, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessEmail, taxId, businessCategory, socialLink } = req.body
+    const { email, nin: ninValue, address, companyName, businessType, businessRegistrationNumber, businessAddress, businessEmail, taxId, businessCategory, socialLink, businessImage } = req.body
 
     try {
         let getUser
@@ -296,6 +298,7 @@ export async function updateSellerInfo(req, res) {
         if(businessEmail) getSeller.businessEmail = businessEmail
         if(businessCategory) getSeller.businessCategory = businessCategory
         if(socialLink) getSeller.socialLink = socialLink
+        if(businessImage) getSeller.businessImage = businessImage
 
         if(!getSeller.isActive) {
             if(businessRegistrationNumber) getSeller.businessRegistrationNumber = businessRegistrationNumber

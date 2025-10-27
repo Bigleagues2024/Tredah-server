@@ -28,6 +28,12 @@ const BuyerKycInfoSchema = new mongoose.Schema({
     businessCategory: {
         type: String
     },
+    businessImage: {
+        type: String
+    },
+    socialLink: {
+        type: String
+    },
     isActive: {
         type: Boolean,
         default: false

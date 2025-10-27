@@ -508,8 +508,6 @@ paths:
                 type: string
               password:
                 type: string
-              oldPassword:
-                type: string
       responses:
         200:
           description: Success
@@ -551,6 +549,8 @@ paths:
                 type: string
               nin:
                 type: string
+              businessImage:
+                type: string
       responses:
         200:
           description: Success
@@ -585,6 +585,10 @@ paths:
               businessAddress:
                 type: string
               businessCategory:
+                type: string
+              businessImage:
+                type: string
+              socialLink:
                 type: string
       responses:
         200:

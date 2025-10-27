@@ -61,7 +61,7 @@ export async function newProduct(req, res) {
         const getStore = await StoreModel.findOne({ sellerId: userId })
 
         const product = await ProductModel.create({
-            userId: sellerId,
+            sellerId: sellerId,
             productId,
             storeName: getStore?.name || getSeller?.companyName || userName,
             name,
@@ -83,8 +83,10 @@ export async function newProduct(req, res) {
         getUser.productCount += 1
         await getUser.save()
 
-        getStore.productCount += 1
-        getStore.save()
+        if(getStore) {
+            getStore.productCount += 1
+            getStore.save()
+        }
 
         sendResponse(res, 201, true, product, 'New product created successful')
     } catch (error) {

@@ -43,6 +43,9 @@ const SellerKycInfoSchema = new mongoose.Schema({
     entityType: {
         type: String
     },
+    businessImage: {
+        type: String
+    },
     isActive: {
         type: Boolean,
         default: false
