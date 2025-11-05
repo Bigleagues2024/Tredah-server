@@ -365,6 +365,8 @@ export async function makePayment(req, res) {
 
 //update order status by admin (manual use case)
 
+//update order (admin)
+
 //fetch order summary
 export async function getOrderSummary(req, res) {
     const { userId: ownerId, storeId, userType } = req.user;

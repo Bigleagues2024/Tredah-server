@@ -29,14 +29,14 @@ export const findOrCreateCategories = async (categories) => {
 //new product
 export async function newProduct(req, res) {
     const { userId, storeId, name: userName } = req.user    
-    const { name, about, description, category, subCategory, displayPrice, weight, weightValue, moq, variant, quantityInStock, productImageUrl, mediaImagesUrls } = req.body
+    const { name, about, description, category, subCategory, displayPrice, weight, weightValue, moq, variant, quantityInStock, productImageUrl, mediaImagesUrls, active = true } = req.body
     const sellerId = storeId || userId
 
-    if(!name) return sendResponse(res, 400, false, null, 'Product name is required')
-    if(!description) return sendResponse(res, 400, false, null, 'Product description is required')
-    if(!category) return sendResponse(res, 400, false, null, 'Product category is required')
-    if(!Array.isArray(category)) return sendResponse(res, 400, false, null,  'Product category must be an array')
-    if(category.length < 1) return sendResponse(res, 400, false, null, 'Category array must contain at least one category')
+    //if(!name) return sendResponse(res, 400, false, null, 'Product name is required')
+    //if(!description) return sendResponse(res, 400, false, null, 'Product description is required')
+    //if(!category) return sendResponse(res, 400, false, null, 'Product category is required')
+    if(category && !Array.isArray(category)) return sendResponse(res, 400, false, null,  'Product category must be an array')
+    if(category && category.length < 1) return sendResponse(res, 400, false, null, 'Category array must contain at least one category')
     if (variant) {
         if (!Array.isArray(variant)) {
             sendResponse(res, 400, false, null, 'Variant must be an array')
@@ -46,10 +46,13 @@ export async function newProduct(req, res) {
             sendResponse(res, 400, false, null, 'Each variant must be a valid object')
         }
     }
-    if(!productImageUrl) return sendResponse(res, 400, false, null, 'Provide product image link')
+    //if(!productImageUrl) return sendResponse(res, 400, false, null, 'Provide product image link')
 
     try {
-        const categories = await findOrCreateCategories(category)
+        let categories = []
+        if(category) {
+            categories = await findOrCreateCategories(category)
+        }
         let subCategories = []
         if(subCategory) {
             subCategories = await findOrCreateCategories(subCategory)
@@ -60,6 +63,7 @@ export async function newProduct(req, res) {
         const getSeller = await SellerKycInfoModel.findOne({ accountId: userId })
         const getStore = await StoreModel.findOne({ sellerId: userId })
 
+        const activeState = active
         const product = await ProductModel.create({
             sellerId: sellerId,
             productId,
@@ -76,7 +80,8 @@ export async function newProduct(req, res) {
             mainImage: productImageUrl,
             media: mediaImagesUrls,
             variant,
-            quantityInStock
+            quantityInStock,
+            active: activeState
         })
 
         const getUser = await UserModel.findOne({ userId })
@@ -88,7 +93,7 @@ export async function newProduct(req, res) {
             getStore.save()
         }
 
-        sendResponse(res, 201, true, product, 'New product created successful')
+        sendResponse(res, 201, true, product, `New product created successful. ${ !active && 'Product is saved as draft' }`)
     } catch (error) {
         console.log('UNABLE TO CREATE NEW PRODUCT', error)
         sendResponse(res, 500, false, null, 'Unable to create new product')
@@ -98,7 +103,7 @@ export async function newProduct(req, res) {
 //edit product
 export async function editProduct(req, res) {
     const { userId, storeId } = req.user    
-    const { productId, name, about, description, category, subCategory, displayPrice, weight, weightValue, moq, variant, quantityInStock, productImageUrl, mediaImagesUrls } = req.body
+    const { productId, name, about, description, category, subCategory, displayPrice, weight, weightValue, moq, variant, quantityInStock, productImageUrl, mediaImagesUrls, active } = req.body
     const sellerId = storeId || userId
     
     if(!productId) return sendResponse(res, 400, false, null, 'Product Id is required')
@@ -115,6 +120,7 @@ export async function editProduct(req, res) {
             sendResponse(res, 400, false, null, 'Each variant must be a valid object')
         }
     }
+    if(active && typeof active !== 'boolean') return sendResponse(res, 400, false, null, 'Active value must be a boolean')
     
 
     try {
@@ -144,6 +150,7 @@ export async function editProduct(req, res) {
         if(mediaImagesUrls) getProduct.media = mediaImagesUrls
         if(variant) getProduct.variant
         if(quantityInStock) getProduct.quantityInStock = quantityInStock
+        if(active) getProduct.active = active
 
         await getProduct.save()
 

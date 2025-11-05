@@ -1158,6 +1158,9 @@ paths:
                 type: array
                 items:
                   type: string
+              active:
+                type: boolean
+                example: false
       responses:
         200:
           description: Success
@@ -1225,6 +1228,9 @@ paths:
                 type: array
                 items:
                   type: string
+              active:
+                type: boolean
+                example: false
       responses:
         200:
           description: Success
