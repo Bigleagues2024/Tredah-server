@@ -2150,28 +2150,37 @@ paths:
     post:
       tags:
         - Seller
-      summary: Update Store details (SELELR)
+      summary: Update Store details (SELLER)
       description: Endpoint to update/create store front details
       consumes:
+        - application/json
+      produces:
         - application/json
       parameters:
         - in: body
           name: body
-          required: true
+          required: false
           schema:
             type: object
             properties:
               storeImg:
                 type: string
-              name: 
+                example: "https://example.com/image.png"
+              name:
                 type: string
-              about: 
+                example: "My Store"
+              about:
                 type: string
-              description: 
+                example: "About my store"
+              description:
                 type: string
+                example: "Full description here"
               businessAddress:
                 type: string
-              socialLink: string
+                example: "123 Main Street"
+              socialLink:
+                type: string
+                example: "https://twitter.com/mystore"
       responses:
         200:
           description: Success

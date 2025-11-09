@@ -524,7 +524,7 @@ export async function getRelatedProduct(req, res) {
 
   try {
     const getProduct = await ProductModel.findOne({ productId })
-      .select('-__v -_id -blockedReason -revenueGenerated -active -blocked');
+      .select('-__v -_id -blockedReason -revenueGenerated ');
 
     if (!getProduct) return sendResponse(res, 404, false, null, 'Product not found');
     if (getProduct.blocked || !getProduct.active)
@@ -926,7 +926,7 @@ export async function getSellerProducts(req, res) {
 
         return {
             productId: product.productId,
-            name: product.name,
+            name: product.name || '',
             image: product.mainImage,
             imageArray: product.imageArray,
             price: product.price,
@@ -1093,6 +1093,7 @@ export async function deActivateProduct(req, res) {
         if(sellerId !== getProduct.sellerId) return sendResponse(res, 405, false, null, 'Not allowed')
         
         getProduct.active = false
+        getProduct.blocked = true
         await getProduct.save()
 
         //notify product owner
@@ -1123,6 +1124,7 @@ export async function activateProduct(req, res) {
 
         
         getProduct.active = true
+        getProduct.blocked = false
         await getProduct.save()
 
         //notify product owner

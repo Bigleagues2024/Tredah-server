@@ -36,7 +36,7 @@ router.get('/getSavedProduct', AuthenticateUser, controllers.getSavedProduct)
 
 //get methods store
 router.get('/getStoreProduct', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.getSellerProducts) //for store owner get all products
-router.get('/getProductDetail/productId', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.getAProduct) //for store owner get a product detail
+router.get('/getProductDetail/:productId', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['product']), controllers.getAProduct) //for store owner get a product detail
 
 
 //get methods admin
