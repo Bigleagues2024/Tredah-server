@@ -459,7 +459,7 @@ export async function requestRefund(params) {
     }
 }
 
-//get transaction stats
+//get transaction stats (admin)
 export async function getTransactionsStats(req, res) {
   const { period = '30days' } = req.query;
 
@@ -494,6 +494,89 @@ export async function getTransactionsStats(req, res) {
       { id: 'completedTransaction', name: 'Processing Transactions', filter: { status: 'Completed' } },
       { id: 'failedTransaction', name: 'Shipment Transactions', filter: { status: 'Failed' } },
       { id: 'cancelledTransaction', name: 'Delivered Transactions', filter: { status: 'Cancelled' } },
+    ];
+
+    // calculate for each status
+    const results = await Promise.all(
+      statuses.map(async (s) => {
+        const current = await TransactionModel.countDocuments({ ...currentFilter, ...s.filter });
+        const previous = await TransactionModel.countDocuments({ ...previousFilter, ...s.filter });
+
+        const percentageChange = (currentVal, prevVal) => {
+          if (prevVal === 0) return currentVal > 0 ? 100 : 0;
+          let change = ((currentVal - prevVal) / prevVal) * 100;
+          return Math.abs(change.toFixed(2));
+        };
+
+        return {
+          id: s.id,
+          name: s.name,
+          current,
+          previous,
+          percentage: percentageChange(current, previous),
+          percentageChange: current >= previous ? '+' : '-',
+        };
+      })
+    );
+
+    sendResponse(res, 200, true, results, 'Transactions statistics retrieved successfully');
+  } catch (error) {
+    console.log('UNABLE TO GET TRANSACTIONS STATS', error);
+    sendResponse(res, 500, false, 'Unable to get Transactions stats');
+  }
+}
+
+//get transsnaction stats of a user (seller, admin, buyre)
+export async function getUserTransactionsStats(req, res) {
+  const { period = '30days' } = req.query;
+  const { accountId, type } = req.params
+  const { userId: ownerId, storeId, userType } = req.user;
+  if(!type) return sendResponse(res, 400, false, null, 'Account type is required')
+  if(!['buyer', 'seller'].includes(type)) return sendResponse(res, 400, false, null, 'Account type is either buyer or seller')
+  const isSeller = userType?.toLowerCase() === 'seller' || type.toLowerCase() === 'seller';
+  const userId = storeId || ownerId || accountId
+  if(!userId) return sendResponse(res, 400, false, null, 'Account Id is required')
+
+    let query = {};
+
+    // filter by user type
+    if (isSeller) {
+        query.sellerId = userId;
+    } else {
+        query.buyerId = userId;
+    }
+
+  const periods = {
+    '3days': 3,
+    '7days': 7,
+    '15days': 15,
+    '30days': 30,
+    '3mth': 90,
+    '6mth': 180,
+    '1year': 365,
+    'alltime': null
+  };
+
+  if (!periods.hasOwnProperty(period)) {
+    return sendResponse(res, 400, false, 'Invalid period specified');
+  }
+
+  try {
+    let startDate = periods[period] ? subDays(new Date(), periods[period]) : null;
+    let previousStartDate = periods[period] ? subDays(startDate, periods[period]) : null;
+    let endDate = new Date();
+    let previousEndDate = startDate;
+
+    const currentFilter = startDate ? { createdAt: { $gte: startDate, $lte: endDate } } : {};
+    const previousFilter = previousStartDate ? { createdAt: { $gte: previousStartDate, $lte: previousEndDate } } : {};
+
+    // statuses to calculate
+    const statuses = [
+      { id: 'totalTransaction', name: 'Total Transactions', filter: {} },
+      { id: 'pendingTransaction', name: 'Pending Transactions', filter: { ...query, status: 'Pending' } },
+      { id: 'completedTransaction', name: 'Processing Transactions', filter: { ...query, status: 'Completed' } },
+      { id: 'failedTransaction', name: 'Shipment Transactions', filter: { ...query, status: 'Failed' } },
+      { id: 'cancelledTransaction', name: 'Delivered Transactions', filter: { ...query, status: 'Cancelled' } },
     ];
 
     // calculate for each status

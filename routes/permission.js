@@ -4,7 +4,8 @@ const staff = [
     "order",
     "customerSupport",
     "orderContract",
-    "subscription"
+    "subscription",
+    "manager"
 ]
 
 const admin = [

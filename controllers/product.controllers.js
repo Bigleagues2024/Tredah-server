@@ -32,7 +32,7 @@ export async function newProduct(req, res) {
     const { name, about, description, category, subCategory, displayPrice, weight, weightValue, moq, variant, quantityInStock, productImageUrl, mediaImagesUrls, active = true } = req.body
     const sellerId = storeId || userId
 
-    //if(!name) return sendResponse(res, 400, false, null, 'Product name is required')
+    if(name && typeof name !== 'string') return sendResponse(res, 400, false, null, 'Product name must be a string')
     //if(!description) return sendResponse(res, 400, false, null, 'Product description is required')
     //if(!category) return sendResponse(res, 400, false, null, 'Product category is required')
     if(category && !Array.isArray(category)) return sendResponse(res, 400, false, null,  'Product category must be an array')
@@ -294,18 +294,18 @@ export async function getProducts(req, res) {
         const totalReviews = reviews.length;
 
         return {
-            productId: product.productId,
-            name: product.name,
-            image: product.mainImage, 
-            imageArray: product.imageArray, 
-            price: product.price,
-            storeName: product.storeName,
-            sellerId: product.sellerId,
-            discount: product.discountAllowed ? product.discount : null,
-            discountPercentage: product.discountPercentage ? product.discountPercentage : null,
-            discountedPrice: product.discountedPrice ? product.discountedPrice : null,
-            likes: product.likes?.length || 0,
-            liked: userId ? product.likes.includes(userId) : false,
+            productId: product?.productId,
+            name: product?.name,
+            image: product?.mainImage, 
+            imageArray: product?.imageArray, 
+            price: product?.price,
+            storeName: product?.storeName,
+            sellerId: product?.sellerId,
+            discount: product?.discountAllowed ? product?.discount : null,
+            discountPercentage: product?.discountPercentage ? product?.discountPercentage : null,
+            discountedPrice: product?.discountedPrice ? product?.discountedPrice : null,
+            likes: product?.likes?.length || 0,
+            liked: userId ? product?.likes.includes(userId) : false,
             rating,
             totalReviews
         }

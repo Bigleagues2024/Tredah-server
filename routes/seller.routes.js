@@ -23,6 +23,7 @@ router.post('/deactivateStore', AuthenticateAdmin, PermissionsRole(['seller', 'a
 //GET
 router.get('/getStoreReview/:sellerId', controllers.getStoreReview)
 router.get('/getStoreDetails/:sellerId', controllers.getStoreInfo)
+router.get('/getStores', controllers.getStores)
 router.get('/getSavedStoreInfo', AuthenticateUser, controllers.getSavedStoreInfo)
 
 //get methods store endpoint

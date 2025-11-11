@@ -2439,6 +2439,39 @@ paths:
         500: 
           description: server error
 
+  /seller/getStores:
+    get:
+      tags:
+        - Seller
+      summary: Get all sellers store fronts
+      description: The endpoint provides all seller store fronts
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: The limit for each data fetched
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          description: The page of the data to fetch
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          description: search for product e.g name store name etc
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
   /seller/getAStoreInfo/{sellerId}:
     get:
       tags:
@@ -2980,6 +3013,64 @@ paths:
         500:
           description: Unable to get orders history
 
+  /transaction/userStats/{accountId}/{type}:
+    get:
+      tags:
+        - Transaction
+      summary: Get transaction stats history of a user (ADMIN)
+      description: >
+        Fetches transaction history stats  
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          type: string
+          description: >
+            accountId of the specific user
+        - name: type
+          in: path
+          required: true
+          type: string
+          description: >
+            account type of the specific user `['seller', 'buyer']`
+        - name: period
+          in: query
+          required: false
+          type: string
+          enum: [3days, 7days, 15days, 30days, 3mth, 6mth, 1year, alltime]
+          description: >
+            Time period for filtering transactions stats.  
+      responses:
+        200:
+          description: Transactions stats history fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to get orders history
+
+  /transaction/orderStats:
+    get:
+      tags:
+        - Transaction
+      summary: Get transaction stats history of account (USER)
+      description: >
+        Fetches transactions history stats  
+      parameters:
+        - name: period
+          in: query
+          required: false
+          type: string
+          enum: [3days, 7days, 15days, 30days, 3mth, 6mth, 1year, alltime]
+          description: >
+            Time period for filtering transaction stats.  
+      responses:
+        200:
+          description: Transaction stats history fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to get orders history
+
   /transaction/transactionDetail/{transactionId}:
     get:
       tags:
@@ -3260,6 +3351,64 @@ paths:
       tags:
         - Order
       summary: Get order stats history (ADMIN)
+      description: >
+        Fetches orders history stats  
+      parameters:
+        - name: period
+          in: query
+          required: false
+          type: string
+          enum: [3days, 7days, 15days, 30days, 3mth, 6mth, 1year, alltime]
+          description: >
+            Time period for filtering orders stats.  
+      responses:
+        200:
+          description: Orders stats history fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to get orders history
+
+  /order/userStats/{accountId}/{type}:
+    get:
+      tags:
+        - Order
+      summary: Get order stats history of a user (ADMIN)
+      description: >
+        Fetches orders history stats  
+      parameters:
+        - name: accountId
+          in: path
+          required: true
+          type: string
+          description: >
+            accountId of the specific user
+        - name: type
+          in: path
+          required: true
+          type: string
+          description: >
+            account type of the specific user `['seller', 'buyer']`
+        - name: period
+          in: query
+          required: false
+          type: string
+          enum: [3days, 7days, 15days, 30days, 3mth, 6mth, 1year, alltime]
+          description: >
+            Time period for filtering orders stats.  
+      responses:
+        200:
+          description: Orders stats history fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to get orders history
+
+  /order/orderStats:
+    get:
+      tags:
+        - Order
+      summary: Get order stats history of account (USER)
       description: >
         Fetches orders history stats  
       parameters:

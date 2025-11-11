@@ -21,11 +21,13 @@ router.post('/export', AuthenticateUser, AllowedStoreStaff(['transaction']), con
 router.get('/summary', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransactionsSummary)
 router.get('/history', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransactionsHistroy)
 router.get('/transactionDetail/:transactionId', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransaction)
+router.get('/orderStats', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getUserTransactionsStats)
 
 //get methods store
 
 //get methods admin
 router.get('/allTransaction', AuthenticateAdmin, PermissionsRole(['transaction', 'admin', 'superadmin']), controllers.getAllTransactionsHistroy)
 router.get('/stats', AuthenticateAdmin, PermissionsRole(['transaction', 'admin', 'superadmin']), controllers.getTransactionsStats)
+router.get('/userStats/:accountId/:type', AuthenticateAdmin, PermissionsRole(['transaction', 'admin', 'superadmin']), controllers.getUserTransactionsStats)
 
 export default router

@@ -390,6 +390,74 @@ export async function getAllStores(req, res) {
     }
 }
 
+//get all store front (users)
+export async function getStores(req, res) {
+    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+    const search = req.query.search?.trim();
+
+    try {
+        // Build search filter
+        let filter = { active: true };
+        if (search) {
+            filter = {
+                $or: [
+                    { sellerId: { $regex: search, $options: "i" } },   // case-insensitive
+                    { name: { $regex: search, $options: "i" } }  // change `storeName` if your field is different
+                ]
+            };
+        }
+
+        const totalItems = await StoreModel.countDocuments(filter);
+        const allSellers = await StoreModel.find(filter)
+            .select("-__v -_id")
+            .skip(skip)
+            .limit(limit);
+
+        const data = await Promise.all(
+            allSellers.map(async (sellerDoc) => {
+                const seller = sellerDoc.toObject();
+                const reviews = seller.reviews || [];
+                const rating = calculateAverageRating(reviews);
+                const totalReviews = reviews.length;
+
+                const accountDoc = await SellerKycInfoModel.findOne({
+                    accountId: seller.sellerId
+                }).select("-__v -_id");
+
+                const account = accountDoc?.toObject() || {};
+
+                return {
+                    ...seller,
+                    ...account,
+                    rating,
+                    totalReviews,
+                };
+            })
+        );
+
+        const totalPages = Math.ceil(totalItems / limit);
+
+        sendResponse(
+            res,
+            200,
+            true,
+            {
+                data,
+                totalCount: totalItems,
+                totalPages,
+                currentPage: page,
+                //pageSize: limit
+            },
+            "Stores information"
+        );
+    } catch (error) {
+        console.log("UNABLE TO GET ALL SELLERS INFORMATION", error);
+        sendResponse(res, 500, false, null, "Unable to get all sellers info");
+    }
+}
+
 //get a store front (admin and owner)
 export async function getAStoreInfo(req, res) {
     const { sellerId: accountId } = req.params

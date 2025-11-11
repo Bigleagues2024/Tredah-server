@@ -35,6 +35,9 @@ const StoreStaffSchema = new mongoose.Schema({
         type: Array,
         default: []
     },
+    profileImg: {
+        type: String
+    },
 
 
     /**SERVER ONLY */
