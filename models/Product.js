@@ -67,6 +67,10 @@ const ProductSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    noOfOrder: {
+        type: Number,
+        default: 0
+    },
     inStock: {
         type: Boolean,
         default: true

@@ -936,6 +936,14 @@ export async function getSellerProducts(req, res) {
             discountPercentage: product.discountPercentage || null,
             discountedPrice: product.discountedPrice || null,
             likes: product.likes?.length || 0,
+            totalOrdered: product.noOfOrder,
+            totalQuantitySold: product.noOfSales,
+            category: product.category,
+            createdAt: product.createdAt,
+            quantityInStock: product.quantityInStock,
+            active: product.active,
+            blocked: product.blocked,
+            blockedReason: product.blockedReason,
             rating,
             totalReviews
         }
