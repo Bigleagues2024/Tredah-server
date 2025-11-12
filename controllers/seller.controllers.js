@@ -7,7 +7,7 @@ import cron from "node-cron";
 //create/update store front (owner) - subscribed owner
 export async function updateStoreDetails(req, res) {
     const { userId, storeId } = req.user
-    const { storeImg, name, about, description, businessAddress, socialLink } = req.body
+    const { storeImg, name, tagline, description, overview, businessAddress, socialLink, phoneNumber, contactInfo } = req.body
     const sellerId = storeId || userId
 
     try {
@@ -17,11 +17,14 @@ export async function updateStoreDetails(req, res) {
         const getStore = await StoreModel.findOne({ sellerId })
         if(getStore) {
             if(storeImg) getStore.storeImg = storeImg
-            if(about) getStore.about = about
+            if(tagline) getStore.tagline = tagline
             if(description) getStore.description = description
             if(name) getStore.name = name
+            if(overview) getStore.overview = overview
             if(businessAddress) getStore.businessAddress = businessAddress
             if(socialLink) getStore.socialLink = socialLink
+            if(phoneNumber) getStore.phoneNumber = phoneNumber
+            if(contactInfo) getStore.contactInfo = contactInfo
 
             await getStore.save()
             if(!getStore?.name) {
@@ -34,10 +37,13 @@ export async function updateStoreDetails(req, res) {
                 sellerId,
                 storeImg,
                 name: name ? name : getSeller?.companyName,
-                about,
+                tagline,
+                overview,
                 description, 
                 businessAddress,
-                socialLink  
+                socialLink,
+                phoneNumber,
+                contactInfo
             })
             storeData = newStore
         }

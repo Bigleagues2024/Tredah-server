@@ -12,13 +12,19 @@ const StoreSchema = new mongoose.Schema({
     name: {
         type: String,
     },
-    about: {
+    tagline: {
+        type: String,
+    },
+    overview: {
         type: String,
     },
     description: {
         type: String,
     },
     businessAddress: {
+        type: String
+    },
+    phoneNumber: {
         type: String
     },
     socialLink: {
@@ -32,6 +38,23 @@ const StoreSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    contactInfo: [{
+        name: {
+            type: String
+        },
+        role: {
+            type: String
+        },
+        phoneNumber: {
+            type: String
+        },
+        email: {
+            type: String
+        },
+        office: {
+            type: String
+        }
+    }],
 
     followers: {
         type: Array,

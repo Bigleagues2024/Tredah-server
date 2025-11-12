@@ -2169,18 +2169,42 @@ paths:
               name:
                 type: string
                 example: "My Store"
-              about:
+              tagLine:
                 type: string
                 example: "About my store"
               description:
                 type: string
                 example: "Full description here"
+              overview:
+                type: string,\
+                example: Full overview of store
               businessAddress:
                 type: string
                 example: "123 Main Street"
+              businessName:
+                type: string
+                example: Ade Point
               socialLink:
                 type: string
                 example: "https://twitter.com/mystore"
+              phoneNumber:
+                type: string
+                example: 2349012345678
+              contactInfo:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    role:
+                      type: string
+                    phoneNumber:
+                      type: string
+                    email:
+                      type: string
+                    office:
+                      type: string
       responses:
         200:
           description: Success
