@@ -17,6 +17,9 @@ const OrderSchema = new mongoose.Schema({
     buyerEmail: {
         type: String
     },
+    buyerName: {
+        type: String,
+    },
     amountAtPurchase: {
         type: Number
     },

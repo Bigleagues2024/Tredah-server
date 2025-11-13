@@ -9,6 +9,7 @@ import moment from "moment";
 import crypto from 'crypto'
 import { VASBusinessVerification } from "../middleware/VASBuisnessVerification.js";
 import paystack from "../middleware/paystack.js";
+import StoreStaffModel from "../models/StoreStaff.js";
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const userTypeOptions = ['seller', 'buyer']
@@ -307,7 +308,12 @@ export async function resendOtp(req, res) {
     if(!tredahuserid) return sendResponse(res, 404, false, null, 'User not found')
 
     try {
-        const getUser = await UserModel.findOne({ userId: tredahuserid })
+        let getUser = null
+        if(tredahuserid.endsWith('STFF')) {
+            getUser = await StoreStaffModel.findOne({ userId: tredahuserid })
+        } else {
+            getUser = await UserModel.findOne({ userId: tredahuserid })
+        }
         if(!getUser) return sendResponse(res, 404, false, null, 'User with this id does not exist')
 
         //create otp and send to user
@@ -333,7 +339,12 @@ export async function requestOtp(req, res) {
     const { userId } = req.user
 
     try {
-        const getUser = await UserModel.findOne({ userId: userId })
+        let getUser = null
+        if(tredahuserid.endsWith('STFF')) {
+            getUser = await StoreStaffModel.findOne({ userId: userId })
+        } else {
+            getUser = await UserModel.findOne({ userId: userId })
+        }
         if(!getUser) return sendResponse(res, 404, false, null, 'User with this id does not exist')
 
         //create otp and send to user
@@ -631,7 +642,13 @@ export async function login(req, res) {
     if(!password) return sendResponse(res, 400, false, null, 'Password is required')
         
     try {
-        const getUser = await UserModel.findOne({ email })
+        let getUser = null
+        if(tredahuserid.endsWith('STFF')) {
+            getUser = await StoreStaffModel.findOne({ email })
+        } else {
+            getUser = await UserModel.findOne({ email })
+        }
+        
         if(!getUser) return sendResponse(res, 404, false, null, 'Invalid Credentials')
 
         if(!getUser?.verified){

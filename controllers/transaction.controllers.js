@@ -4,6 +4,7 @@ import { Parser as Json2csvParser } from "json2csv";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import archiver from "archiver";
+import { subDays } from "date-fns";
 
 export async function getTransactionsSummary(req, res) {
     const { userId: ownerId, storeId, userType } = req.user;
@@ -490,10 +491,10 @@ export async function getTransactionsStats(req, res) {
     // statuses to calculate
     const statuses = [
       { id: 'totalTransaction', name: 'Total Transactions', filter: {} },
-      { id: 'pendingTransaction', name: 'Pending Transactions', filter: { status: 'Pending' } },
-      { id: 'completedTransaction', name: 'Processing Transactions', filter: { status: 'Completed' } },
-      { id: 'failedTransaction', name: 'Shipment Transactions', filter: { status: 'Failed' } },
-      { id: 'cancelledTransaction', name: 'Delivered Transactions', filter: { status: 'Cancelled' } },
+      { id: 'completedTransaction', name: 'Completed Transactions', filter: { paymentStatus: 'Released' } },
+      { id: 'pendingTransaction', name: 'Pending Transactions', filter: { paymentStatus: 'Pending' } },
+      { id: 'escrowTransaction', name: 'Escrow Transactions', filter: { paymentStatus: 'Escrow' } },
+      { id: 'totalProduct', name: 'Total Product', filter: {} },
     ];
 
     // calculate for each status
@@ -508,6 +509,16 @@ export async function getTransactionsStats(req, res) {
           return Math.abs(change.toFixed(2));
         };
 
+        // ✅ For specific statuses, calculate totalAmount
+        let totalAmount = 0;
+        if (['Released', 'Pending', 'Escrow'].includes(s.filter.paymentStatus)) {
+          const sum = await TransactionModel.aggregate([
+            { $match: { ...currentFilter, ...s.filter } },
+            { $group: { _id: null, totalAmount: { $sum: '$amount' } } }
+          ]);
+          totalAmount = sum[0]?.totalAmount || 0;
+        }
+
         return {
           id: s.id,
           name: s.name,
@@ -515,6 +526,7 @@ export async function getTransactionsStats(req, res) {
           previous,
           percentage: percentageChange(current, previous),
           percentageChange: current >= previous ? '+' : '-',
+          ...(totalAmount ? { totalAmount } : {}) // include totalAmount only for relevant ones
         };
       })
     );
@@ -529,22 +541,26 @@ export async function getTransactionsStats(req, res) {
 //get transsnaction stats of a user (seller, admin, buyre)
 export async function getUserTransactionsStats(req, res) {
   const { period = '30days' } = req.query;
-  const { accountId, type } = req.params
-  const { userId: ownerId, storeId, userType } = req.user;
-  if(!type) return sendResponse(res, 400, false, null, 'Account type is required')
-  if(!['buyer', 'seller'].includes(type)) return sendResponse(res, 400, false, null, 'Account type is either buyer or seller')
-  const isSeller = userType?.toLowerCase() === 'seller' || type.toLowerCase() === 'seller';
-  const userId = storeId || ownerId || accountId
-  if(!userId) return sendResponse(res, 400, false, null, 'Account Id is required')
+  const { accountId, type } = req.params;
+  const { adminId, userId: ownerId, storeId, userType } = req.user;
 
-    let query = {};
+  if (adminId && !type)
+    return sendResponse(res, 400, false, null, 'Account type is required');
+  if (adminId && !['buyer', 'seller'].includes(type))
+    return sendResponse(res, 400, false, null, 'Account type is either buyer or seller');
 
-    // filter by user type
-    if (isSeller) {
-        query.sellerId = userId;
-    } else {
-        query.buyerId = userId;
-    }
+  const isSeller = userType?.toLowerCase() === 'seller' || type?.toLowerCase() === 'seller';
+  const userId = storeId || ownerId || accountId;
+  if (!userId) return sendResponse(res, 400, false, null, 'Account Id is required');
+
+  let query = {};
+
+  // filter by user type
+  if (isSeller) {
+    query.sellerId = userId;
+  } else {
+    query.buyerId = userId;
+  }
 
   const periods = {
     '3days': 3,
@@ -572,11 +588,11 @@ export async function getUserTransactionsStats(req, res) {
 
     // statuses to calculate
     const statuses = [
-      { id: 'totalTransaction', name: 'Total Transactions', filter: {} },
-      { id: 'pendingTransaction', name: 'Pending Transactions', filter: { ...query, status: 'Pending' } },
-      { id: 'completedTransaction', name: 'Processing Transactions', filter: { ...query, status: 'Completed' } },
-      { id: 'failedTransaction', name: 'Shipment Transactions', filter: { ...query, status: 'Failed' } },
-      { id: 'cancelledTransaction', name: 'Delivered Transactions', filter: { ...query, status: 'Cancelled' } },
+      { id: 'totalTransaction', name: 'Total Transactions', filter: { ...query } },
+      { id: 'completedTransaction', name: 'Completed Transactions', filter: { ...query, paymentStatus: 'Released' } },
+      { id: 'pendingTransaction', name: 'Pending Transactions', filter: { ...query, paymentStatus: 'Pending' } },
+      { id: 'escrowTransaction', name: 'Escrow Transactions', filter: { ...query, paymentStatus: 'Escrow' } },
+      { id: 'totalProduct', name: 'Total Product', filter: { ...query } },
     ];
 
     // calculate for each status
@@ -591,6 +607,16 @@ export async function getUserTransactionsStats(req, res) {
           return Math.abs(change.toFixed(2));
         };
 
+        // ✅ For specific statuses, calculate totalAmount
+        let totalAmount = 0;
+        if (['Released', 'Pending', 'Escrow'].includes(s.filter.paymentStatus)) {
+          const sum = await TransactionModel.aggregate([
+            { $match: { ...currentFilter, ...s.filter } },
+            { $group: { _id: null, totalAmount: { $sum: '$amount' } } }
+          ]);
+          totalAmount = sum[0]?.totalAmount || 0;
+        }
+
         return {
           id: s.id,
           name: s.name,
@@ -598,6 +624,7 @@ export async function getUserTransactionsStats(req, res) {
           previous,
           percentage: percentageChange(current, previous),
           percentageChange: current >= previous ? '+' : '-',
+          ...(totalAmount ? { totalAmount } : {}) // include totalAmount only for relevant ones
         };
       })
     );

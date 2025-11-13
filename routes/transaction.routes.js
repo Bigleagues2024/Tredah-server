@@ -21,7 +21,7 @@ router.post('/export', AuthenticateUser, AllowedStoreStaff(['transaction']), con
 router.get('/summary', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransactionsSummary)
 router.get('/history', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransactionsHistroy)
 router.get('/transactionDetail/:transactionId', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getTransaction)
-router.get('/orderStats', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getUserTransactionsStats)
+router.get('/transactionStats', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.getUserTransactionsStats)
 
 //get methods store
 

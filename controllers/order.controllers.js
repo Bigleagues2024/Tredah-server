@@ -9,7 +9,7 @@ import { subDays } from "date-fns";
 //new order
 export async function newOrder(req, res) {
     const { userId, storeId, name } = req.user
-    const { buyerEmail, amount, productId, quantity } = req.body
+    const { buyerEmail, buyerName, amount, productId, quantity } = req.body
     if(!buyerEmail) return sendResponse(res, 400, false, null, 'Buyer Email address is required')
     if(!amount) return sendResponse(res, 400, false, null, 'Amount is required')
     if(typeof amount !== 'number') return sendResponse(res, 400, false, null, 'Amount must be a number')
@@ -39,6 +39,7 @@ export async function newOrder(req, res) {
             sellerId,
             buyerId: getUser.userId,
             buyerEmail,
+            buyerName,
             amountAtPurchase: amount,
             companyNameAtPurchase: getSellerInfo?.companyName || name,
             productId,
@@ -66,7 +67,7 @@ export async function newOrder(req, res) {
 //edit order only before payment is made
 export async function editOrder(req, res) {
     const { userId, storeId, name } = req.user
-    const { orderId, buyerEmail, amount, productId, quantity } = req.body
+    const { orderId, buyerEmail, buyerName, amount, productId, quantity } = req.body
     if(!orderId) return sendResponse(res, 400, false, null, 'Order is required')
     if(amount) {
         if(typeof amount !== 'number') return sendResponse(res, 400, false, null, 'Amount must be a number')
@@ -102,6 +103,7 @@ export async function editOrder(req, res) {
         getOrder.companyNameAtPurchase = getSellerInfo?.companyName || name
         if(productId) getOrder.productId = productId
         if(quantity) getOrder.quantity = quantity
+        if(buyerName) getOrder.buyerName = buyerName
         
         await getOrder.save()
 
@@ -127,16 +129,15 @@ export async function editOrder(req, res) {
 export async function getordersHistory(req, res) {
     const { userId: ownerId, storeId, userType } = req.user;
     const isSeller = userType.toLowerCase() === "seller";
-
-    const userId = storeId || ownerId
+    const userId = storeId || ownerId;
 
     const {
         limit = 10,
         page = 1,
         status,
         period,
-        start, 
-        end, 
+        start,
+        end,
         days
     } = req.query;
 
@@ -144,18 +145,13 @@ export async function getordersHistory(req, res) {
         const query = {};
 
         // filter by user type
-        if (isSeller) {
-            query.sellerId = userId;
-        } else {
-            query.buyerId = userId;
-        }
+        if (isSeller) query.sellerId = userId;
+        else query.buyerId = userId;
 
-        //  filter by paymentStatus if provided
-        if (status) {
-            query.status = status;
-        }
+        // filter by status
+        if (status) query.status = status;
 
-        // ✅ date filtering
+        // date filter
         let dateFilter = {};
         const now = new Date();
 
@@ -198,13 +194,12 @@ export async function getordersHistory(req, res) {
                 break;
         }
 
-        if (Object.keys(dateFilter).length > 0) {
-            query.createdAt = dateFilter;
-        }
+        if (Object.keys(dateFilter).length > 0) query.createdAt = dateFilter;
 
-        // ✅ pagination
+        // pagination
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
+        // fetch orders
         const [orders, total] = await Promise.all([
             OrderModel.find(query)
                 .select('-_id -__v')
@@ -214,17 +209,39 @@ export async function getordersHistory(req, res) {
             OrderModel.countDocuments(query)
         ]);
 
+        // ✅ attach product details
+        const enhancedOrders = await Promise.all(
+            orders.map(async (order) => {
+                try {
+                    const product = await ProductModel.findOne({ _id: order.productId })
+                        .select("name mainImage category description");
+
+                    return {
+                        ...order.toObject(),
+                        productName: product?.name || "Unknown Product",
+                        productImage: product?.mainImage || null
+                    };
+                } catch {
+                    return {
+                        ...order.toObject(),
+                        productName: "Unknown Product",
+                        productImage: null
+                    };
+                }
+            })
+        );
+
         const data = {
-            orders,
+            orders: enhancedOrders,
             total,
             page: parseInt(page),
             pages: Math.ceil(total / limit)
-        }
-        return sendResponse(res, 200, true, data, "Orders history fetched successfully");
+        };
 
+        return sendResponse(res, 200, true, data, "Orders history fetched successfully");
     } catch (error) {
-        console.log('UNABLE TO GET USER ORDERS HISTORY', error)
-        sendResponse(res, 500, false, null, 'Unable to get user order history')
+        console.error("UNABLE TO GET USER ORDERS HISTORY", error);
+        sendResponse(res, 500, false, null, "Unable to get user order history");
     }
 }
 
@@ -237,8 +254,8 @@ export async function getAllorders(req, res) {
         page = 1,
         status,
         period,
-        start, 
-        end, 
+        start,
+        end,
         days,
         sellerId,
         buyerId,
@@ -247,18 +264,12 @@ export async function getAllorders(req, res) {
     try {
         const query = {};
 
-        // filter by sellerId or buyerId
-        if (sellerId) {
-            query.sellerId = sellerId;
-        }
-        if (buyerId) {
-            query.buyerId = buyerId;
-        }
+        // filter by seller or buyer
+        if (sellerId) query.sellerId = sellerId;
+        if (buyerId) query.buyerId = buyerId;
 
-        // filter by paymentStatus if provided
-        if (status) {
-            query.status = status;
-        }
+        // filter by status
+        if (status) query.status = status;
 
         // date filtering
         let dateFilter = {};
@@ -303,13 +314,12 @@ export async function getAllorders(req, res) {
                 break;
         }
 
-        if (Object.keys(dateFilter).length > 0) {
-            query.createdAt = dateFilter;
-        }
+        if (Object.keys(dateFilter).length > 0) query.createdAt = dateFilter;
 
         // pagination
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
+        // fetch orders
         const [orders, total] = await Promise.all([
             OrderModel.find(query)
                 .select('-_id -__v')
@@ -319,15 +329,36 @@ export async function getAllorders(req, res) {
             OrderModel.countDocuments(query)
         ]);
 
+        // ✅ attach product details
+        const enhancedOrders = await Promise.all(
+            orders.map(async (order) => {
+                try {
+                    const product = await ProductModel.findOne({ _id: order.productId })
+                        .select("name mainImage category");
+
+                    return {
+                        ...order.toObject(),
+                        productName: product?.name || "Unknown Product",
+                        productImage: product?.mainImage || null
+                    };
+                } catch {
+                    return {
+                        ...order.toObject(),
+                        productName: "Unknown Product",
+                        productImage: null
+                    };
+                }
+            })
+        );
+
         const data = {
-            orders,
+            orders: enhancedOrders,
             total,
             page: parseInt(page),
             pages: Math.ceil(total / limit)
         };
 
         return sendResponse(res, 200, true, data, "All orders fetched successfully");
-
     } catch (error) {
         console.error("UNABLE TO GET ALL ORDERS HISTORY (ADMIN)", error);
         return sendResponse(res, 500, false, null, "Unable to get all orders history");
@@ -336,17 +367,58 @@ export async function getAllorders(req, res) {
 
 //get an order (buyer or seller or admin)
 export async function getOrder(req, res) {
-    const { orderId } = req.params
-    if(!orderId) return sendResponse(res, 400, false, null, 'Order Id is required')
+    const { orderId } = req.params;
+    if (!orderId)
+        return sendResponse(res, 400, false, null, "Order Id is required");
 
     try {
-        const order = await OrderModel.findOne({ orderId }).select('-_id -__v')
-        if(!order) return sendResponse(res, 404, false, null, 'No order found')
+        // find the order
+        const order = await OrderModel.findOne({ orderId }).select("-_id -__v");
+        if (!order)
+            return sendResponse(res, 404, false, null, "No order found");
 
-        sendResponse(res, 200, true, order, 'Order detail fetched success')
+        // ✅ get product details
+        const product = await ProductModel.findOne({ _id: order.productId })
+            .select("name mainImage price category description -_id");
+
+        // attach product details
+        const enrichedOrder = {
+            ...order.toObject(),
+            product: product
+                ? {
+                      name: product.name,
+                      mainImage: product.mainImage,
+                      price: product.price,
+                      category: product.category,
+                      about: product.about,
+                      description: product.description,
+                  }
+                : {
+                      name: "Unknown Product",
+                      mainImage: null,
+                      price: null,
+                      category: null,
+                      about: null,
+                      description: null,
+                  },
+        };
+
+        return sendResponse(
+            res,
+            200,
+            true,
+            enrichedOrder,
+            "Order detail fetched successfully"
+        );
     } catch (error) {
-        console.log('UNABLE TO GET ORDER DATA', error)
-        sendResponse(res, 500, false, null, 'Unable to get order histroy detail')
+        console.error("UNABLE TO GET ORDER DATA", error);
+        return sendResponse(
+            res,
+            500,
+            false,
+            null,
+            "Unable to get order history detail"
+        );
     }
 }
 
@@ -559,9 +631,9 @@ export async function getOrderStats(req, res) {
 export async function getUserOrderStats(req, res) {
   const { period = '30days' } = req.query;
   const { accountId, type } = req.params
-  const { userId: ownerId, storeId, userType } = req.user;
-  if(!type) return sendResponse(res, 400, false, null, 'Account type is required')
-  if(!['buyer', 'seller'].includes(type)) return sendResponse(res, 400, false, null, 'Account type is either buyer or seller')
+  const { adminId, userId: ownerId, storeId, userType } = req.user;
+  if(adminId && !type) return sendResponse(res, 400, false, null, 'Account type is required')
+  if(adminId && !['buyer', 'seller'].includes(type)) return sendResponse(res, 400, false, null, 'Account type is either buyer or seller')
   const isSeller = userType?.toLowerCase() === 'seller' || type.toLowerCase() === 'seller';
   const userId = storeId || ownerId || accountId
   if(!userId) return sendResponse(res, 400, false, null, 'Account Id is required')
@@ -601,7 +673,7 @@ export async function getUserOrderStats(req, res) {
 
     // statuses to calculate
     const statuses = [
-      { id: 'totalOrders', name: 'Total Orders', filter: {} },
+      { id: 'totalOrders', name: 'Total Orders', filter: { ...query, } },
       { id: 'pendingOrders', name: 'Pending Orders', filter: { ...query, status: 'Pending' } },
       { id: 'processingOrders', name: 'Processing Orders', filter: { ...query, status: 'Processing' } },
       { id: 'shipmentOrders', name: 'Shipment Orders', filter: { ...query, status: 'Shipment' } },

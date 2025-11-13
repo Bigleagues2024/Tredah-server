@@ -38,6 +38,9 @@ const StoreStaffSchema = new mongoose.Schema({
     profileImg: {
         type: String
     },
+    phoneNumber: {
+        type: String
+    },
 
 
     /**SERVER ONLY */
@@ -47,6 +50,10 @@ const StoreStaffSchema = new mongoose.Schema({
     },
     verified: {
         type: Boolean,
+        default: false
+    },
+    isOnBoardingComplete: {
+                type: Boolean,
         default: false
     },
     isActive: {

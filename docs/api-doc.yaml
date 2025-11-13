@@ -64,6 +64,9 @@ tags:
     description: Orders histroy endpoint
   - name: Subscription
     description: Subscription endpoint
+  - name: Store Staff
+    description: Store Staff endpoint
+
 
 
 paths:
@@ -3072,7 +3075,7 @@ paths:
         500:
           description: Unable to get orders history
 
-  /transaction/orderStats:
+  /transaction/transactionStats:
     get:
       tags:
         - Transaction
@@ -3492,6 +3495,7 @@ paths:
               - amount
               - productId
               - quantity
+              - buyerName
             properties:
               buyerEmail:
                 type: string
@@ -3501,6 +3505,8 @@ paths:
                 type: string
               quantity:
                 type: number
+              buyerName:
+                type: string
       responses:
         200:
           description: Success
@@ -3536,6 +3542,8 @@ paths:
                 type: string
               quantity:
                 type: number
+              buyerName:
+                type: string
       responses:
         200:
           description: Success
@@ -3838,3 +3846,217 @@ paths:
           description: user error
         500: 
           description: server error
+
+#STORE STAFF
+  /storeStaff:
+    post:
+      tags:
+        - Store Staff
+      summary: Create a new store staff by seller
+      description: |
+        This endpoint allows a seller to create a new store staff. permission is an array of string permissions that defines what the staff can access.
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - email
+              - permission
+            properties:
+              name:
+                type: string
+                example: Jonathan Mark
+              email: 
+                type: string
+                example: jonathan@gmail.com
+              permission:
+                type: array
+                items:
+                  type: string
+                example: ["order", "transaction", "staff", "product"]
+
+    get:
+      tags:
+        - Store Staff
+      summary: Get all store staffs
+      description: Endpoint to get all staffs of a store
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: The limit of the data to fetch
+          schema:
+            type: number
+            example: 10
+        - name: page
+          in: query
+          required: false
+          description: The page of the data to fetch
+          schema:
+            type: number
+            example: 1
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+  /storeStaff/{id}:
+    patch:
+      tags:
+        - Store Staff
+      summary: Update a store staff
+      description: |
+        This endpoint allows a seller to update store staffs info
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: staffId
+          required: true
+          description: The userId of the staff
+          schema:
+            type: string
+            example: heufhfdhusSTFF
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                example: Jonathan Mark
+              email: 
+                type: string
+                example: jonathan@gmail.com
+              permission:
+                type: array
+                items:
+                  type: string
+                example: ["order", "transaction", "staff", "product"]
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+    delete:
+      tags:
+        - Store Staff
+      summary: Delete a store staff
+      description: |
+        This endpoint allows a seller to delete store staffs info
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: staffId
+          required: true
+          description: The userId of the staff
+          schema:
+            type: string
+            example: heufhfdhusSTFF
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+    get:
+      tags:
+        - Store Staff
+      summary: Get a store staff
+      description: |
+        This endpoint allows a seller to get store staffs info
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: staffId
+          required: true
+          description: The userId of the staff
+          schema:
+            type: string
+            example: heufhfdhusSTFF
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+  /storeStaff/profile:
+    post:
+      tags:
+        - Store Staff
+      summary: Update Profile account by staff
+      description: Endpoint store staff to update their profile
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              phoneNumber:
+                type: string
+              profileImg: 
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+    get:
+      tags:
+        - Store Staff
+      summary: Get a store staff profile (Staff)
+      description: |
+        This endpoint allows a store staff to get their profile info
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
