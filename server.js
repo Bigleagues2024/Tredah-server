@@ -27,7 +27,7 @@ const io = new Server(server, {
 //DB
 import './connection/db.js';
 
-import './test.js'
+//import './test.js'
 
 // CORS setup
 const allowedOrigins = [
