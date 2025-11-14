@@ -76,6 +76,7 @@ import TransactionRoutes from './routes/transaction.routes.js'
 import OrderRoutes from './routes/order.routes.js'
 import SubscriptionRoutes from './routes/subscription.routes.js'
 import StoreStaffRoutes from './routes/storeStaff.routes.js'
+import AdminRoutes from './routes/admin.routes.js'
 
 
 
@@ -89,8 +90,7 @@ app.use('/api/transaction', TransactionRoutes)
 app.use('/api/order', OrderRoutes)
 app.use('/api/subscription', SubscriptionRoutes)
 app.use('/api/storeStaff', StoreStaffRoutes)
-
-
+app.use('/api/admin', AdminRoutes)
 
 
 

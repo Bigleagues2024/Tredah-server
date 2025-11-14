@@ -66,6 +66,8 @@ tags:
     description: Subscription endpoint
   - name: Store Staff
     description: Store Staff endpoint
+  - name: Admin
+    description: Admin endpoint
 
 
 
@@ -2172,7 +2174,7 @@ paths:
               name:
                 type: string
                 example: "My Store"
-              tagLine:
+              tagline:
                 type: string
                 example: "About my store"
               description:
@@ -4051,6 +4053,379 @@ paths:
         - application/json
       produces:
         - application/json
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+#ADMIN ENDPOINT
+  /admin/profile:
+    post:
+      tags:
+        - Admin
+      summary: Update Profile account by admin user
+      description: Endpoint for admin to update their profile
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              phoneNumber:
+                type: string
+              profileImg: 
+                type: string
+              dob:
+                type: string,
+              timezone:
+                type: string
+              bio:
+                type: string
+              country:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+    get:
+      tags:
+        - Admin
+      summary: Get a  profile (Staff)
+      description: |
+        This endpoint allows a admin staff to get their profile
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+  /admin/updatePassword:
+    post:
+      tags:
+        - Admin
+      summary: Update password 
+      description: Endpoint for admin to update their password
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              otp:
+                type: string
+              password:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /admin/requestOtp:
+    post:
+      tags:
+        - Admin
+      summary: Request OTP 
+      description: Endpoint for admin to request otp for 2fa operations
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /admin/login:
+    post:
+      tags:
+        - Admin
+      summary: Admin Login 
+      description: Endpoint for admin to login their account
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+              password:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /admin/forgotPassword:
+    post:
+      tags:
+        - Admin
+      summary: Admin Forgot password 
+      description: Endpoint for admin to request forgot password
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /admin/resetPassword:
+    post:
+      tags:
+        - Admin
+      summary: Admin reset password 
+      description: Endpoint for admin to reset forgot password
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              password:
+                type: string
+              confirmPassword:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /admin/signout:
+    post:
+      tags:
+        - Admin
+      summary: Signout 
+      description: Endpoint for admin to signout of their account
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /admin:
+    post:
+      tags:
+        - Admin
+      summary: Admin Create Admin account 
+      description: Endpoint to create an admin user
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            properties:
+              email:
+                type: string
+                format: email
+              name:
+                type: string
+              role:
+                type: string
+              permission:
+                type: array
+                items:
+                  type: string
+                example: ["order", "transaction", "staff", "product"]
+              mobileNumber:
+                type: string
+              role:
+                type: string
+              roleDescription:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+    get:
+      tags:
+        - Admin
+      summary: Get all admin staffs
+      description: Endpoint to get all admin staffs
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: The limit of the data to fetch
+          schema:
+            type: number
+            example: 10
+        - name: page
+          in: query
+          required: false
+          description: The page of the data to fetch
+          schema:
+            type: number
+            example: 1
+      responses:
+        200:
+          description: Success - true
+        400:
+          description: error - false
+        500:
+          description: Server error
+
+  /admin/{id}:
+    patch:
+      tags:
+        - Admin
+      summary: Update a Admin staff
+      description: |
+        This endpoint allows to update an admin staff info s
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: adminId
+          required: true
+          description: The adminId of the staff
+          schema:
+            type: string
+            example: heufhfdhusSTFF
+        - in: body
+          name: body
+          required: false
+          schema:
+            type: object
+            properties:
+              role:
+                type: string
+                example: Manager
+              roleDescription: 
+                type: string
+              permissions:
+                type: array
+                items:
+                  type: string
+                example: ["order", "transaction", "staff", "product"]
+              blocked:
+                type: boolean,
+                example: false
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+    delete:
+      tags:
+        - Admin
+      summary: Delete a store staff
+      description: |
+        This endpoint allows a admin staff to be deleted
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: adminId
+          required: true
+          description: The adminId of the staff
+          schema:
+            type: string
+            example: heufhfdhusSTFF
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+    get:
+      tags:
+        - Admin
+      summary: Get a admin staff
+      description: |
+        This endpoint allows a admin staff info to be fetched
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: adminId
+          required: true
+          description: The adminId of the staff
+          schema:
+            type: string
+            example: heufhfdhusSTFF
       responses:
         200:
           description: Success

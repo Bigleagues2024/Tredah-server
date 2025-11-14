@@ -16,7 +16,7 @@ router.post('/signout', AuthenticateAdmin, controllers.signout)
 
 
 
-//store
+//admin
 router.post('/', AuthenticateAdmin, PermissionsRole(['staff']), controllers.createAdminUser)
 router.patch('/:adminId', AuthenticateAdmin, PermissionsRole(['staff']), controllers.updateAdmin)
 router.delete('/:adminId', AuthenticateAdmin, PermissionsRole(['staff']), controllers.deleteAdmin)
@@ -28,7 +28,7 @@ router.get('/verifyToken', AuthenticateAdmin, controllers.verifyToken)
 
 //store
 router.get('/', AuthenticateAdmin, PermissionsRole(['staff']), controllers.getAdmins)
-router.get('/:staffId', AuthenticateAdmin, PermissionsRole(['staff']), controllers.getAdmin)
+router.get('/:adminId', AuthenticateAdmin, PermissionsRole(['staff']), controllers.getAdmin)
 
 
 export default router

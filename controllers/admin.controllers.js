@@ -1,5 +1,3 @@
-import { sendNewLoginEmail, sendPasswordOtpEmail } from "../middleware/mailTemplate/mailService/mailTemplate"
-import { generateOtp, sendResponse, stringToNumberArray } from "../middleware/utils"
 import AdminModel from "../models/Admin.js"
 import RefreshTokenModel from "../models/RefreshToken.js"
 import moment from "moment";
@@ -47,8 +45,11 @@ export async function createAdminUser(req, res) {
             adminId,
             name,
             mobileNumber,
+            roleDescription,
+            role,
             email,
             password: newPassword,
+            isActive: true
         })
 
         //sendEmail to admin
