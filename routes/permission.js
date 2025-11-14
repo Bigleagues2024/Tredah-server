@@ -5,6 +5,7 @@ const staff = [
     "customerSupport",
     "orderContract",
     "subscription",
+    "staff",
     "manager"
 ]
 

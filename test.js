@@ -1,3 +1,17 @@
+import { sendWelcomeEmail } from "./middleware/mailTemplate/mailService/mailTemplate.js";
+
+export async function SendTes() {
+    const sendTestEmai = await sendWelcomeEmail({
+        email: 'successakin123@gmail.com',
+        name: 'Modrid',
+    })
+    console.log('sendTestEmai', sendTestEmai)
+    return
+
+}
+SendTes()
+
+
 import axios from "axios";
 import { config } from "dotenv";
 config()

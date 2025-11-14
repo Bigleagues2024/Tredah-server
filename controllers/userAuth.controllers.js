@@ -643,8 +643,8 @@ export async function login(req, res) {
         
     try {
         let getUser = null
-        if(tredahuserid.endsWith('STFF')) {
-            getUser = await StoreStaffModel.findOne({ email })
+        if(email.endsWith('STFF')) {
+            getUser = await StoreStaffModel.findOne({ userId: email })
         } else {
             getUser = await UserModel.findOne({ email })
         }
@@ -799,7 +799,12 @@ export async function forgotPassword(req, res) {
     if(!emailRegex.test(email)) return sendResponse(res, 400, false, null, 'Invalid email address')
 
     try {
-        const getUser = await UserModel.findOne({ email })
+        let getUser = null
+        if(email.endsWith('STFF')) {
+            getUser = await StoreStaffModel.findOne({ userId: email })
+        } else {
+            getUser = await UserModel.findOne({ email })
+        }
         if(!getUser) return sendResponse(res, 404, false, null, 'Invalid email address')
 
         //generate  forgot password
@@ -845,10 +850,20 @@ export async function resetPassword(req, res) {
 
     if(!accountId) return sendResponse(res, 403, false, 'Not Allowed')
     try {
-        const getUser = await UserModel.findOne({
+        let getUser = null
+        if(accountId.endsWith('STFF')) {
+            getUser = await StoreStaffModel.findOne({
+                resetPasswordToken,
+                resetPasswordExpire: { $gt: Date.now()}
+            })
+            getUser = await StoreStaffModel.findOne({ userId: email })
+        } else {
+            getUser = await UserModel.findOne({
             resetPasswordToken,
             resetPasswordExpire: { $gt: Date.now()}
         })
+            getUser = await UserModel.findOne({ email })
+        }
 
         if(!getUser) return sendResponse(res, 400, false, null, 'Invalid reset token')
         if(getUser.userId !== accountId) return sendResponse(res, 400, false, 'Not Allowed')
@@ -881,13 +896,13 @@ export async function verifyToken(req, res) {
             try {
                 const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
 
-                if (decoded.accountType !== 'user') {
-                    return sendResponse(res, 403, false, null, 'Unauthorized access');
+                let user = null
+                if (decoded.accountType === 'user') {
+                    user = await UserModel.findOne({ userId: decoded.id });
+                } else {
+                    user = await StoreStaffModel.findOne({ userId: decoded.id });
                 }
-
-                const user = await UserModel.findOne({ userId: decoded.id });
                 if (!user) return sendResponse(res, 404, false, null, 'User not found');
-                if (!user.refreshToken) return sendResponse(res, 401, false, null, 'Unauthenticated');
 
                 // Remove sensitive data before sending the response
                 const { password, noOfLoginAttempts, temporaryAccountBlockTime, verified, accountSuspended, isBlocked, resetPasswordToken, resetPasswordExpire, subscriptionPriceId, subscriptionId, _id, ...userData } = user._doc;
@@ -912,7 +927,12 @@ export async function verifyToken(req, res) {
 async function handleTokenRefresh(res, accountId) {
     if (!accountId) return sendResponse(res, 401, false, null, 'Unauthenticated');
 
-    const user = await UserModel.findOne({ userId: accountId });
+    let user = null
+    if(accountId.endsWith('STFF')) {
+        user = await StoreStaffModel.findOne({ userId: accountId });
+    } else {
+        user = await UserModel.findOne({ userId: accountId });
+    }
     if (!user) return sendResponse(res, 404, false, null, 'User not found');
 
     const refreshTokenExist = await RefreshTokenModel.findOne({ accountId });

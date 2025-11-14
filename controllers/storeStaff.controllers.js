@@ -1,5 +1,9 @@
+import { sendNewStaffEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js"
 import { sendResponse } from "../middleware/utils.js"
+import StoreModel from "../models/StoreFront.js"
 import StoreStaffModel from "../models/StoreStaff.js"
+
+const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 //new staff
 export async function newStaff(req, res) {
@@ -8,6 +12,7 @@ export async function newStaff(req, res) {
     const { name, email, permission } = req.body
     if(!name) return sendResponse(res, 400, false, null, 'Staff Name is required')
     if(!email) return sendResponse(res, 400, false, null, 'User Email address is required')
+    if(!emailRegex.test(email)) return sendResponse(res, 400, false, null, 'Invalid email address')
     if(!permission || !Array.isArray(permission)) return sendResponse(res, 400, false, null, 'Permision must be a valid array of strings')
 
     if (
@@ -38,7 +43,16 @@ export async function newStaff(req, res) {
             isOnBoardingComplete: true
         })
 
+        const getStore = await StoreModel.findOne({ sellerId: storeId })
+
         //sendEmail to user
+        await sendNewStaffEmail({
+            email,
+            name,
+            title: `${getStore?.name} Staff Account created | Treadah`,
+            profile: { userId, password: newPassword },
+            store: getStore?.name
+        })
 
         sendResponse(res, 201, true, addStaff, 'New Staff created successful')
     } catch (error) {
@@ -70,7 +84,9 @@ export async function updateStaff(req, res) {
         if(permission) getStaff.permission = permission
         
         await getStaff.save()
-        sendResponse(res, 200, true, getStaff, 'Staff Account updated')
+
+        const { password: userPassword, temporaryAccountBlockTime, _id, __v, ...userData } = getStaff._doc;
+        sendResponse(res, 200, true, userData, 'Staff Account updated')
     } catch (error) {
         console.log('UNABLE TO UPDATE STAFF', error)
         sendResponse(res, 500, false, null, 'Unable to update staff detail')
@@ -106,7 +122,7 @@ export async function getStaffs(req, res) {
     // Fetch staff belonging to this store
     const [staffs, total] = await Promise.all([
       StoreStaffModel.find({ storeId })
-        .select('-_id -__v')
+        .select('-_id -__v -password -resetToken -resetPasswordExpire')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),

@@ -7,6 +7,7 @@ import OtpModel from "../models/Otp.js"
 import ProductModel from "../models/Product.js"
 import SellerKycInfoModel from "../models/SellerKycInfo.js"
 import ShippingAddressModel from "../models/ShippingAddress.js"
+import StoreStaffModel from "../models/StoreStaff.js"
 import SubscriptionHistroyModel from "../models/SubscriptionHistroy.js"
 import UserModel from "../models/User.js"
 import { subDays } from 'date-fns';
@@ -196,12 +197,18 @@ export async function updatePassword(req, res) {
     if(!password) return sendResponse(res, 400, false, null, 'Password is required')
 
     try {
-        const getOtp = await OtpModel.findOne({ mobileNumber, otp })
+        const getOtp = await OtpModel.findOne({ otp })
         if(!getOtp) return sendResponse(res, 400, false, null, 'Invalid Otp')
 
         const verifyPassword = await validatePassword(password)
         if(!verifyPassword.success) return sendResponse(res, 400, false, null, verifyPassword.message)
-        const getUser = await UserModel.findOne({ userId })
+        let getUser
+        if(userId.endsWith('STFF')) {
+            getUser = await StoreStaffModel.findOne({ userId })
+        } else {
+            getUser = await UserModel.findOne({ userId })
+        }
+        
         
         //verify old password
         //const validateOldPassword = await getUser.matchPassword(oldPassword)

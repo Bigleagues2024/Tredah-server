@@ -1,9 +1,7 @@
 import express from 'express'
 import * as controllers from '../controllers/storeStaff.controllers.js'
 import { getLocation } from '../middleware/location.js'
-import { uploadMiddleware } from '../middleware/utils.js'
 import { AllowedStoreStaff, AllowedUserType, AuthenticateUser } from '../middleware/auth/user-auth.js'
-import { AuthenticateAdmin, PermissionsRole } from '../middleware/auth/admin-auth.js'
 
 const router = express.Router()
 

@@ -1,11 +1,9 @@
-import axios from "axios";
 import { config } from "dotenv";
+import { Resend } from "resend";
 config();
 
-const apiKey = process.env.BREVO_API;
-const emailUrl = process.env.EMAIL_URL;
+const resend = new Resend(process.env.RESEND_API_KEY);
 const emailAddress = process.env.EMAIL_ADDRESS;
-
 
 const senderInfo = {
   name: "Tredah Market Place",
@@ -13,7 +11,7 @@ const senderInfo = {
 };
 
 /**
- * sendEmail - Sends an email
+ * sendEmail - Sends an email using Resend
  * @param {Object} options - The email options
  * @param {Array|String} options.to - Recipient(s): can be a single email or an array of emails/objects
  * @param {String} options.subject - The subject line
@@ -27,32 +25,27 @@ const sendEmail = async (options) => {
     if (Array.isArray(options.to)) {
       // If array of strings or objects
       recipients = options.to.map((recipient) =>
-        typeof recipient === "string" ? { email: recipient } : recipient
+        typeof recipient === "string" ? recipient : recipient.email
       );
     } else if (typeof options.to === "string") {
-      recipients = [{ email: options.to }];
+      recipients = [options.to];
     } else {
       throw new Error("Invalid 'to' field. It must be a string or array.");
     }
 
     const emailData = {
-      sender: senderInfo,
+      from: `${senderInfo.email}`,
+      //from: `${senderInfo.name} <${senderInfo.email}>`,
       to: recipients,
       subject: options.subject,
-      htmlContent: options.html,
+      html: options.html,
     };
 
-    const response = await axios.post(emailUrl, emailData, {
-      headers: {
-        "Content-Type": "application/json",
-        "api-key": apiKey,
-      },
-    });
-
-    console.log("EMAIL SENT SUCCESSFULLY:", response.data?.messageId || "OK");
+    const response = await resend.emails.send(emailData);
+    console.log("✅ EMAIL SENT SUCCESSFULLY:", response?.id || "OK");
   } catch (error) {
     console.error(
-      "UNABLE TO SEND EMAIL:",
+      "❌ UNABLE TO SEND EMAIL:",
       error.response?.data || error.message
     );
   }
