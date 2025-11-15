@@ -2210,6 +2210,8 @@ paths:
                       type: string
                     office:
                       type: string
+                    profileImg:
+                      type: string
       responses:
         200:
           description: Success

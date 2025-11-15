@@ -433,11 +433,11 @@ export async function makePayment(req, res) {
     }
 }
 
-//approve order payment by admin (manual use case)
+//approve order payment by admin (manual use case) - handles stautus upddate for transactions
 
 //update order status by admin (manual use case)
 
-//update order (admin)
+//update order (admin) - handles status update for order
 
 //fetch order summary
 export async function getOrderSummary(req, res) {

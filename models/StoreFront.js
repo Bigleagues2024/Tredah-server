@@ -53,6 +53,9 @@ const StoreSchema = new mongoose.Schema({
         },
         office: {
             type: String
+        },
+        profileImg: {
+            type: String
         }
     }],
 
