@@ -8,10 +8,11 @@ import { AuthenticateAdmin, PermissionsRole } from '../middleware/auth/admin-aut
 const router = express.Router()
 
 //POST
-router.post('/requestRefund', AuthenticateUser, controllers.requestRefund)
+router.post('/requestRefund', AuthenticateUser, AllowedUserType(['buyer']), controllers.requestRefund)
 router.post('/export', AuthenticateUser, AllowedStoreStaff(['transaction']), controllers.exportTransactionHistroy)
 
 //post public
+router.post('/makePayment', AuthenticateUser, AllowedUserType(['buyer']), controllers.makePayment)
 
 
 //post methods admin

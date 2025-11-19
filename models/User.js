@@ -75,6 +75,10 @@ const UserSchema = new mongoose.Schema({
         default: []
     },
     /**WALLET */
+    wallet: {
+        type: Number,
+        default: 0
+    },
     
 
     /**SERVER ONLY */

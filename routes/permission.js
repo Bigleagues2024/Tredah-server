@@ -5,6 +5,7 @@ const staff = [
     "customerSupport",
     "orderContract",
     "subscription",
+    "analytics",
     "staff",
     "manager"
 ]
@@ -17,6 +18,7 @@ const admin = [
     "orderContract",
     "subscription",
     "user",
+    "revenue",
     "admin",
     "superadmin"
 ]

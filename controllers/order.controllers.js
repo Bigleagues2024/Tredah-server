@@ -5,6 +5,10 @@ import UserModel from "../models/User.js";
 import SellerKycInfoModel from "../models/SellerKycInfo.js";
 import NotificationModel from "../models/Notification.js";
 import { subDays } from "date-fns";
+import AdminNotificationModel from "../models/AdminNotification.js";
+import RevenueModel from "../models/Revenue.js";
+
+const orderStatusOptions = ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']
 
 //new order
 export async function newOrder(req, res) {
@@ -422,22 +426,126 @@ export async function getOrder(req, res) {
     }
 }
 
-//pay for order (bank - zenith bank api)
-export async function makePayment(req, res) {
-    const { userId } = req.body
+//update order status by admin only (manual use case)
+export async function updateOrderStatus(req, res) {
+    const { name, adminId } = req.user
+    const { orderId, status, shippingDetails } = req.body
+    if(!orderId) return sendResponse(res, 400, false, null, 'Order Id is required')
+    if(status && !orderStatusOptions.includes(status)) return sendResponse(res, 400, false, null, 'Inavlid status type')
+    
+    // shippingDetails must be an object of strings only
+    if (shippingDetails) {
+        if (typeof shippingDetails !== "object" || Array.isArray(shippingDetails)) {
+            return sendResponse(
+            res,
+            400,
+            false,
+            null,
+            "shippingDetails must be an object"
+            );
+        }
+
+        // Ensure each KEY and VALUE is a string
+        for (const key in shippingDetails) {
+            if (typeof key !== "string") {
+            return sendResponse(
+                res,
+                400,
+                false,
+                null,
+                `shippingDetails key "${key}" must be a string`
+            );
+            }
+
+            if (typeof shippingDetails[key] !== "string") {
+            return sendResponse(
+                res,
+                400,
+                false,
+                null,
+                `shippingDetails.${key} must be a string`
+            );
+            }
+        }
+    }
 
     try {
+        const getOrder = await OrderModel.findOne({ orderId })
+        if(!getOrder) return sendResponse()
+
+        if(status) getOrder.status = status
+        if(shippingDetails) getOrder.shippingDetails = shippingDetails
         
+        await getOrder.save()
+
+        const noteMessage = `Order ${orderId} status updated${
+            status ? `: ${status}` : ""
+        }`;
+        //notify buyer
+        await NotificationModel.create({
+            userId: getOrder.buyerId,
+            notification: noteMessage
+        })
+        //notify seller
+        await NotificationModel.create({
+            userId: getOrder.sellerId,
+            notification: noteMessage
+        })
+        //notify admin
+        await AdminNotificationModel.create({
+            notification: `${noteMessage}. Updated by ${name} - ${adminId}`
+        })
+
+        if(getOrder.status === 'Delivered'){
+            //if not completed credit seller
+            if (!getOrder.completed) {
+                // Get seller
+                const getSeller = await UserModel.findOne({ userId: getOrder?.sellerId });
+
+                const priceSold = Number(getOrder.amountAtPurchase);
+                const commissionRate = 8.3; // 8.3%
+
+                // Calculate commission and seller earning
+                const commissionAmount = Number(((commissionRate / 100) * priceSold).toFixed(2));
+                const finalAmount = Number((priceSold - commissionAmount).toFixed(2));
+
+                // CREDIT SELLER WALLET
+                getSeller.wallet = Number(getSeller.wallet) + finalAmount;
+                await getSeller.save();
+
+                // RECORD COMMISSION REVENUE
+                await RevenueModel.create({
+                    amount: commissionAmount,
+                    source: "sales",
+                    userId: getOrder?.sellerId,
+                    sourceId: getOrder.orderId,
+                });
+
+                // Notify seller
+                await NotificationModel.create({
+                    userId: getOrder.sellerId,
+                    notification: `ORDER ${orderId} has been delivered. Your wallet has been credited with ₦${finalAmount}`
+                });
+
+                // Notify admin
+                await AdminNotificationModel.create({
+                    notification: `ORDER ${orderId} delivered. Seller (${getOrder.sellerId}) wallet credited ₦${finalAmount}. Platform earned ₦${commissionAmount} commission.`
+                });
+
+            }
+
+            //set completed to true
+            getOrder.completed = true
+            await getOrder.save()
+        }
+
+        const { _id, ...orderData } = getOrder._doc
+        sendResponse(res, 200, true, orderData, 'Order updated successful')
     } catch (error) {
-        
+        console.log('UNABLE TO UPDATE ORDER STATUS', error)
+        sendResponse(res, 500, false, null, 'Unable to update order status')
     }
 }
-
-//approve order payment by admin (manual use case) - handles stautus upddate for transactions
-
-//update order status by admin (manual use case)
-
-//update order (admin) - handles status update for order
 
 //fetch order summary
 export async function getOrderSummary(req, res) {

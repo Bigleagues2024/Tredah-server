@@ -449,7 +449,7 @@ export async function exportTransactionHistroy(req, res) {
     }
 }
 
-//request refund on a transaction
+//request refund on a transaction (before completion of order)
 export async function requestRefund(params) {
     const { transactionId } = req.body
 
@@ -459,6 +459,10 @@ export async function requestRefund(params) {
         
     }
 }
+
+//get refund message
+
+//send message on refund chat
 
 //get transaction stats (admin)
 export async function getTransactionsStats(req, res) {
@@ -635,3 +639,21 @@ export async function getUserTransactionsStats(req, res) {
     sendResponse(res, 500, false, 'Unable to get Transactions stats');
   }
 }
+
+//pay for order - create transaction model here (bank - zenith bank api)
+export async function makePayment(req, res) {
+    const { userId } = req.user
+    const { orderId } = req.body
+
+    try {
+        
+    } catch (error) {
+        
+    }
+}
+
+//payment webhook update paymentStatus in order
+
+//verify payment (auto - manual triggered by client e.g verify button) update paymentStatus in order
+
+//approve order(transaction payment) payment by admin (manual use case) - handles payment stautus upddate for transactions update paymentStatus in order

@@ -21,6 +21,8 @@ router.post('/', AuthenticateAdmin, PermissionsRole(['staff']), controllers.crea
 router.patch('/:adminId', AuthenticateAdmin, PermissionsRole(['staff']), controllers.updateAdmin)
 router.delete('/:adminId', AuthenticateAdmin, PermissionsRole(['staff']), controllers.deleteAdmin)
 
+//router.post('/new', controllers.createAdmin)
+
 
 //GET
 router.get('/profile', AuthenticateAdmin, controllers.getProfile) 

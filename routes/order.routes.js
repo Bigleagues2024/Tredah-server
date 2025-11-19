@@ -11,12 +11,9 @@ const router = express.Router()
 router.post('/newOrder', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['order']), controllers.newOrder)
 router.post('/editOrder', AuthenticateUser, AllowedUserType(['seller']), AllowedStoreStaff(['order']), controllers.editOrder)
 
-//post buyer
-router.post('/makePayment', AuthenticateUser, AllowedUserType(['buyer']), controllers.makePayment)
-
-
 
 //post methods admin
+router.post('/update', AuthenticateAdmin, PermissionsRole(['order', 'admin', 'superadmin']), controllers.updateOrderStatus)
 
 
 //GET

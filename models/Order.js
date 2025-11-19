@@ -6,6 +6,10 @@ const OrderSchema = new mongoose.Schema({
         required: [ true, 'Order Id is required' ],
         unique: [ true, 'Order Id is unique' ],
     },
+    transactionId: {
+        type: String, //the transaction id of the succesfull payment to the order
+        //required: [ true, 'Transaction Id is required' ],
+    },
     sellerId: {
         type: String,
         required: [ true, 'Seller Id is required'],
@@ -59,6 +63,9 @@ const OrderSchema = new mongoose.Schema({
     },
     //shipping status
     //shipping details (object)
+    shippingDetails: {
+        
+    },
 
 },
 { timestamps: true }

@@ -68,6 +68,10 @@ tags:
     description: Store Staff endpoint
   - name: Admin
     description: Admin endpoint
+  - name: Revenue
+    description: Revenue endpoint
+  - name: Analytics
+    description: Analytics endpoint
 
 
 
@@ -3181,6 +3185,33 @@ paths:
         500:
           description: Unable to export transaction data
 
+  /transaction/makePayment:
+    post:
+      tags:
+        - Transaction
+      summary: pay order invoice (BUYER)
+      description: Endpoint for buyer to pay for order invoice
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - orderId
+            properties:
+              orderId:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
 #ORDER
   /order/summary/{period}:
     get:
@@ -3556,12 +3587,12 @@ paths:
         500:
           description: Server error
 
-  /order/makePayment:
+  /order/update:
     post:
       tags:
         - Order
-      summary: pay order invoice
-      description: Endpoint for buyer to pay for invoice
+      summary: Update order Status  (ADMIN)
+      description: Endpoint for admin to manually update order status
       consumes:
         - application/json
       parameters:
@@ -3575,6 +3606,10 @@ paths:
             properties:
               orderId:
                 type: string
+              status:
+                type: string
+              shippingDetails:
+                type: object
       responses:
         200:
           description: Success
@@ -4437,3 +4472,131 @@ paths:
           description: Staff not found
         500:
           description: Internal server error
+
+#REVENUE
+  /revenue/stats:
+    get:
+      tags:
+        - Revenue
+      summary: Get revenue stats (ADMIN ROUTE)
+      description: The endpoint provides stats histroy on revenue
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: The period for which the data should be fetched, values are - `[3days 7days 30days 3mth 6mth 1year alltime]` default is 30days
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /revenue:
+    get:
+      tags:
+        - Revenue
+      summary: Get revenue histroy  (ADMIN ROUTE)
+      description: |
+        This endpoint allows revenue histroy to be fetched
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: page
+          required: true
+          description: The page to fetch
+          schema:
+            type: number
+            example: 1
+        - in: query
+          name: limit
+          required: true
+          description: The limit to fetch
+          schema:
+            type: number
+            example: 1  0      
+        - in: query
+          name: source
+          required: true
+          description: The source of revenue - `['sales', 'subscription']`
+          schema:
+            type: number
+            example: 1
+      responses:
+        200:
+          description: Success
+        400:
+          description: Invalid input or bad request
+        404:
+          description: Staff not found
+        500:
+          description: Internal server error
+
+#ANALYTICS
+  /analytics/getAnalyticsStats:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics stats (SELLER ROUTE)
+      description: The endpoint provides histroy on analytics
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: The period for which the data should be fetched, values are - `[3days 7days 30days 3mth 6mth 1year alltime]` default is 30days
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /analytics/getTotalRevenueStats:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics revenue stats (SELLER ROUTE)
+      description: The endpoint provides histroy on analytics revenue for bar chart
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: The period for which the data should be fetched, values are - `[3days 7days 3mth 6mth 1year alltime]` default is 30days
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error
+
+  /analytics/getTopSellingProduct:
+    get:
+      tags:
+        - Analytics
+      summary: Get top selling product (SELLER ROUTE)
+      description: The endpoint provides analytics on top selling product
+      parameters:
+        - name: period
+          in: query
+          required: false
+          description: The period for which the data should be fetched, values are - `[3days 7days 30days 3mth 6mth 1year alltime]` default is 30days
+          schema:
+            type: string
+      responses:
+        200:
+          description: Success
+        400: 
+          description: user error
+        500: 
+          description: server error

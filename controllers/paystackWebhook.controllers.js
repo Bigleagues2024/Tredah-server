@@ -3,6 +3,7 @@ import SubscriptionPlanModel from "../models/SubscriptionsPlan.js";
 import { sendResponse } from "../middleware/utils.js";
 import UserModel from "../models/User.js";
 import SubscriptionHistroyModel from "../models/SubscriptionHistroy.js";
+import RevenueModel from "../models/Revenue.js";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 function calculateEndDate(interval) {
@@ -113,6 +114,14 @@ export async function paystackSubscriptionWebHook(req, res) {
             channel,
             bank,
             cardType: card_type
+          })
+
+          //create revenue model
+          await RevenueModel.create({
+            amount: Number(amount/100).toFixed(2),
+            source: 'subscription',
+            userId: user.userId,
+            sourceId: data?.reference
           })
         }
         break;

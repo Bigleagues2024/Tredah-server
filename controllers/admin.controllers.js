@@ -2,7 +2,7 @@ import AdminModel from "../models/Admin.js"
 import RefreshTokenModel from "../models/RefreshToken.js"
 import moment from "moment";
 import crypto from 'crypto'
-import { sendForgotPasswordEmail, sendNewLoginEmail, sendOtpEmail, sendPasswordOtpEmail, sendWelcomeEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js";
+import { sendForgotPasswordEmail, sendNewLoginEmail, sendNewStaffEmail, sendOtpEmail, sendPasswordOtpEmail, sendWelcomeEmail } from "../middleware/mailTemplate/mailService/mailTemplate.js";
 import { generateOtp, generateUniqueCode, maskEmail, sendResponse, stringToNumberArray, validatePassword } from "../middleware/utils.js"
 import OtpModel from "../models/Otp.js";
 import AdminNotificationModel from "../models/AdminNotification.js";
@@ -39,7 +39,7 @@ export async function createAdminUser(req, res) {
         
         const staffExist = await AdminModel.findOne({ email })
         if(staffExist) return sendResponse(res, 409, false, null, 'User with this email already exist')
-        const newPassword = `${userId}&${getCode}`
+        const newPassword = `${adminId}&${getCode}`
 
         const newAdminUser = await AdminModel.create({
             adminId,
@@ -57,7 +57,7 @@ export async function createAdminUser(req, res) {
             email,
             name,
             title: `Admin Account created | Treadah`,
-            profile: { userId, password: newPassword },
+            profile: { userId: adminId, password: newPassword },
             store: 'Admin Portal'
         })
 
@@ -569,5 +569,78 @@ export async function updatePassword(req, res) {
     } catch (error) {
         console.log('UNABLE TO UPDATE ADMIN PASSWORD', error)
         sendResponse(res, 500, false, null, 'Unable to update password')
+    }
+}
+
+//create text admin user
+export async function createAdmin(req, res) {
+
+    if(process.env.BUILD_MODE === 'DEV') {
+        const { adminId: aId = '1234', name: aName = 'Admin one', role: aRole = 'Manager' } = req.user || {}
+        const { email, name, role, permissions, mobileNumber, roleDescription } = req.body
+    
+        if(!email) return sendResponse(res, 400, false, null, 'Email address is required')
+        if(!name) return sendResponse(res, 400, false, null, 'User name is required')
+        if(!role) return sendResponse(res, 400, false, null, 'User role is required')
+        if(!emailRegex.test(email)) return sendResponse(res, 400, false, null, 'Invalid email address')
+        if(!roleOptions.includes(role)) return sendResponse(res, 400, false, null, 'Invalid role option')
+    
+        if (
+            !Array.isArray(permissions) ||                 // must be an array
+            permissions.length === 0 ||                    // must not be empty
+            !permissions.every((p) => typeof p === 'string' && p.trim() !== '') // all must be non-empty strings
+        ) {
+            return sendResponse(res, 400, false, null, 'Permission must be a non-empty array of strings');
+        }
+    
+        try {
+            const generateUserId = await generateUniqueCode(9)
+            const adminId = `TRD${generateUserId}ADIM`
+            const getCode = await generateUniqueCode(4)
+            
+            const staffExist = await AdminModel.findOne({ email })
+            if(staffExist) {
+                await AdminModel.findOneAndDelete({ email })
+                //return sendResponse(res, 200, true, null, 'Deleted')
+            }
+            //if(staffExist) return sendResponse(res, 409, false, null, 'User with this email already exist')
+            const newPassword = `${adminId}&${getCode}`
+    
+            const newAdminUser = await AdminModel.create({
+                adminId,
+                name,
+                mobileNumber,
+                roleDescription,
+                role,
+                email,
+                password: newPassword,
+                isActive: true
+            })
+    
+            //sendEmail to admin
+            await sendNewStaffEmail({
+                email,
+                name,
+                title: `Admin Account created | Treadah`,
+                profile: { userId: adminId, password: newPassword },
+                store: 'Admin Portal'
+            })
+    
+            await AdminNotificationModel.create({
+                adminId: newAdminUser?.adminId,
+                notification: 'Admin Account created: Welcome to Tredah Admin Portal',
+            })
+    
+            await AdminNotificationModel.create({
+                notification: `New admin user ${name} created by ${aName} (${aRole})`,
+            })
+    
+            sendResponse(res, 201, true, null, 'Admin user created successfully')
+        } catch (error) {
+            console.log('UNABLE TO CREATE ADMIN USER', error)
+            sendResponse(res, 500, false, null, 'Unable to create admin user')
+        }
+    } else {
+        sendResponse(res, 404, false, null, 'Route not found')
     }
 }
