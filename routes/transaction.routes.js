@@ -13,9 +13,11 @@ router.post('/export', AuthenticateUser, AllowedStoreStaff(['transaction']), con
 
 //post public
 router.post('/makePayment', AuthenticateUser, AllowedUserType(['buyer']), controllers.makePayment)
+router.post('/payment/verify/:transactionId', AuthenticateUser, AllowedUserType(['buyer']), controllers.verifyPaymentRef)
 
 
 //post methods admin
+router.get('/verifyPayment/:transactionId', AuthenticateAdmin, PermissionsRole(['transaction', 'admin', 'superadmin']), controllers.verifyPaymentRef)
 
 
 //GET

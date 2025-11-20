@@ -5,6 +5,10 @@ import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import archiver from "archiver";
 import { subDays } from "date-fns";
+import OrderModel from "../models/Order.js";
+import axios from "axios";
+import NotificationModel from "../models/Notification.js";
+import AdminNotificationModel from "../models/AdminNotification.js";
 
 export async function getTransactionsSummary(req, res) {
     const { userId: ownerId, storeId, userType } = req.user;
@@ -450,7 +454,7 @@ export async function exportTransactionHistroy(req, res) {
 }
 
 //request refund on a transaction (before completion of order)
-export async function requestRefund(params) {
+export async function requestRefund(req, res) {
     const { transactionId } = req.body
 
     try {
@@ -644,16 +648,146 @@ export async function getUserTransactionsStats(req, res) {
 export async function makePayment(req, res) {
     const { userId } = req.user
     const { orderId } = req.body
+    if(!orderId)  return sendResponse(res, 400, false, null, 'Order Id is required')
 
     try {
+        const getOrder = await OrderModel.findOne({ orderId })
+        if(!getOrder) return sendResponse(res, 404, false, null, 'Order with this id does not exist')
         
+        //INITIATE PAYMENT
+        const data = {
+            amount: getOrder.amountAtPurchase,
+            email: getOrder.buyerEmail,
+            currency: 'NGN',
+            initiate_type: "inline",
+            callback_url: `${process.env.CLIENT_URL}`,
+            pass_charge: true,
+        }
+
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: `${process.env.GT_SQAUD_URL}/transaction/initiate`,
+            headers: { 
+            'Authorization': `Bearer ${process.env.GT_SQAUD_SK}`, 
+            'Content-Type': 'application/json'
+            },
+            data : data
+        };
+
+        try {
+            const res = await axios.request(config)
+            if(res.data.success) {
+                const payamentData = res?.data?.data
+                //create a transaction model
+                await TransactionModel.create({
+                    transactionId: payamentData?.transaction_ref,
+                    orderId,
+                    buyerId: getOrder?.buyerId,
+                    sellerId: getOrder?.sellerId,
+                    productId: getOrder?.productId,
+                    amount: getOrder?.amountAtPurchase,
+                    totalPayableAmount: Number(Number(payamentData?.transaction_amount) / 100).toFixed(2),
+                    transactionReference: payamentData?.transaction_ref,
+                })
+
+                //send payment link to client
+                return sendResponse(res, 201, true, { paymentLink: payamentData?.payamentData?.transaction_ref }, 'Payment Link created successful')
+            }
+
+        } catch (error) {
+            return sendResponse(res, 500, false, null, 'Unable to generate payment link' )
+        }
     } catch (error) {
+        console.log('UNABLE TO INITIATE PAYMENT', error)
+        sendResponse(res, 500, false, null, 'Unable to initiate payment')
+    }
+}
+
+//verify payment (auto - manual triggered by client/admin e.g verify button) update paymentStatus in order
+//admin and client use this endpoint
+export async function verifyPaymentRef(req, res) {
+    const { userId, adminId } = req.user
+    const { transactionId } = req.params
+
+    try {
+        const getTransaction = await TransactionModel.findOne({ transactionId: transactionId })
+        if(!getTransaction) return sendResponse(res, 404, false, null, 'Transaction not found')
+        if(getTransaction.success) return sendResponse(res, 200, false, null, 'Transaction already verified')
         
+        let config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `${process.env.GT_SQAUD_URL}/transaction/verify/${transactionId}`,
+            headers: { 
+              'Authorization': `Bearer ${process.env.GT_SQAUD_SK}`, 
+              'Content-Type': 'application/json'
+            },
+        };
+
+        try {
+            const res = await axios.request(config)
+            
+            if(res.data.success) {
+                const paymentData = res?.data?.data
+
+                getTransaction.paidCurrency = paymentData.transaction_currency_id
+                getTransaction.paymentMethod = paymentData.transaction_type
+                getTransaction.accessCode = paymentData.gateway_transaction_ref
+                if(paymentData?.transaction_status.toLowerCase() === 'failed') {
+                    getTransaction.transactionStatus = 'Failed'
+                }
+                if(paymentData?.transaction_status.toLowerCase() === 'abandoned') {
+                    getTransaction.transactionStatus = 'Cancelled'
+                }
+                getTransaction.save()
+                if(paymentData?.transaction_status.toLowerCase() === 'success') {
+                    getTransaction.success = true
+                    getTransaction.transactionStatus = 'Completed'
+                    getTransaction.save()
+
+                    //update order
+                    const getOrder = await OrderModel.findOne({ orderId: getTransaction?.orderId })
+                    if(getOrder) {
+                        getOrder.transactionId = getTransaction.transactionId
+                        getOrder.status = 'Processing'
+                        getOrder.paymentStatus =  'Paid',
+                        getOrder.isPaid = true,
+                        getOrder.paidAt = paymentData.created_at
+                        getOrder.save()
+
+                        //notify of new order
+                        //notify buyer
+                        await NotificationModel.create({
+                            userId: getOrder.buyerId,
+                            notification: `Payment of NGN ${getTransaction?.amount} for order: ${getOrder.orderId} has been successfull order is now ${getOrder.status}`
+                        })
+
+                        //notify seller
+                        await NotificationModel.create({
+                            userId: getOrder.sellerId,
+                            notification: `Payment of NGN ${getTransaction?.amount} for order: ${getOrder.orderId} has been successfull order is now ${getOrder.status}. Ensure order is ready for delivery`
+                        })
+
+                        //notify admin
+                        await AdminNotificationModel.create({
+                            notification: `Payment of NGN ${getTransaction?.amount} for order: ${getOrder.orderId} has been successfull. Begin process for customer order to be delivered`
+                        })
+                    }
+                }
+
+                return sendResponse(res, 200, true, getTransaction, 'Payment verified successful')
+            } else {
+                sendResponse(res, 400, false, null, res.data?.message || 'Unable to verify transaction')
+            }
+
+        } catch (error) {
+            return sendResponse(res, 500, false, null, 'Unable to verify payment')
+        }
+    } catch (error) {
+        console.log('UNABLE TO VERIFY PAYMENT', error)
+        sendResponse(res, 500, false, null, 'Unable to verify payment')
     }
 }
 
 //payment webhook update paymentStatus in order
-
-//verify payment (auto - manual triggered by client e.g verify button) update paymentStatus in order
-
-//approve order(transaction payment) payment by admin (manual use case) - handles payment stautus upddate for transactions update paymentStatus in order

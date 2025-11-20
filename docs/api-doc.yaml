@@ -3114,7 +3114,7 @@ paths:
       description: >
         Fetches the transaction detail of a transaction
       parameters:
-        - name: transactionIdriod
+        - name: transactionId
           in: path
           required: true
           type: string
@@ -3211,6 +3211,50 @@ paths:
           description: User error
         500:
           description: Server error
+
+  /transaction/payment/verify/{transactionId}:
+    post:
+      tags:
+        - Transaction
+      summary: Verify Transaction payment
+      description: >
+        Verify payment of a transaction
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          type: string
+          description: >
+            transactionId of the specific transaction
+      responses:
+        200:
+          description: Transaction verified successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch transactions summary
+
+  /transaction/verifyPayment/{transactionId}:
+    post:
+      tags:
+        - Transaction
+      summary: Verify Transaction payment (ADMIN ROUTE)
+      description: >
+        Verify payment of a transaction
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          type: string
+          description: >
+            transactionId of the specific transaction
+      responses:
+        200:
+          description: Transaction verified successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch transactions summary
 
 #ORDER
   /order/summary/{period}:

@@ -26,6 +26,9 @@ const TransactionSchema = new mongoose.Schema({
         type: Number,
         required: [ true, 'Amount is required' ]
     },
+    totalPayableAmount: {
+        type: Number
+    },
     transactionStatus: {
         type: String,
         enum: ['Pending', 'Completed', 'Failed', 'Cancelled'],
@@ -56,7 +59,7 @@ const TransactionSchema = new mongoose.Schema({
         type: String,
         default: 'Pending',
         enum: ['Pending', 'Escrow', 'Released', 'Requested Refund', 'Refunded'],
-    }
+    }, //after order has been delivered to buyer
 },
 { timestamps: true }
 )

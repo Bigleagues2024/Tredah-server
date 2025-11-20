@@ -30,9 +30,6 @@ const OrderSchema = new mongoose.Schema({
     companyNameAtPurchase: {
         type: String
     },
-    totalPayableAmount: {
-        type: Number
-    },
     productId: {
         type: String,
         required: [ true, 'Product Id is required' ]

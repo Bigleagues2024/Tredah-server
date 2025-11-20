@@ -27,6 +27,11 @@ const AdminSchema = new mongoose.Schema({
         type: String,
         default: 'admin'
     },
+    userType: {
+        type: String,
+        default: 'admin',
+        enum: ['admin']
+    },
     lastLoginInfo: [{
         device: {
             type: String,
