@@ -6,6 +6,7 @@ const AppSettingsSchema = new mongoose.Schema({
         default: 0
     },
     
+    
 },
 { 
     timestamps: true

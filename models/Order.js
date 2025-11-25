@@ -41,7 +41,7 @@ const OrderSchema = new mongoose.Schema({
     status: {
         type: String,
         default: 'Pending',
-        enum: ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']
+        enum: ['Pending', 'Processing', 'Shipment', 'Delivered', 'Review', 'Cancelled', 'Returned']
     },
     paymentStatus: {
         type: String,
@@ -55,6 +55,10 @@ const OrderSchema = new mongoose.Schema({
         type: Date
     },
     completed: {
+        type: Boolean,
+        default: false
+    },
+    isSubmitted: {
         type: Boolean,
         default: false
     },

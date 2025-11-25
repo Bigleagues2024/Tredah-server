@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 
-const RefundRequestSchema = new mongoose.Schema({
+const DisputeRequestSchema = new mongoose.Schema({
     userId: {
         type: String,
         required: [ true, 'User Id is required' ]
@@ -20,7 +20,8 @@ const RefundRequestSchema = new mongoose.Schema({
     }],
     status: {
         type: String,
-        enum: ['open', 'closed']
+        default: 'open',
+        enum: ['open', 'closed'],
     },
     isCompleted: {
         type: Boolean,
@@ -32,5 +33,5 @@ const RefundRequestSchema = new mongoose.Schema({
  }
 )
 
-const RefundRequestModel = mongoose.model('revenue', RefundRequestSchema)
-export default RefundRequestModel
+const DisputeRequestModel = mongoose.model('disputeRequest', DisputeRequestSchema)
+export default DisputeRequestModel

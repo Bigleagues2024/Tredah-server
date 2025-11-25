@@ -9,6 +9,11 @@ import OrderModel from "../models/Order.js";
 import axios from "axios";
 import NotificationModel from "../models/Notification.js";
 import AdminNotificationModel from "../models/AdminNotification.js";
+import DisputeRequestModel from "../models/DisputeRequest.js";
+import EscrowReleaseModel from "../models/EscrowRelease.js";
+
+const orderStatusOptions = ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']
+
 
 export async function getTransactionsSummary(req, res) {
     const { userId: ownerId, storeId, userType } = req.user;
@@ -454,19 +459,154 @@ export async function exportTransactionHistroy(req, res) {
 }
 
 //request refund on a transaction (before completion of order)
-export async function requestRefund(req, res) {
-    const { transactionId } = req.body
+export async function ticketRequest(req, res) {
+    const { userId, adminId } = req.user
+    const { orderId, message } = req.body
 
     try {
-        
+        let getTicket = null
+        getTicket = await DisputeRequestModel.findOne({ orderId })
+        if(!getTicket) {
+            const getOrder = await OrderModel.findOne({ orderId })
+            if(!getOrder) return sendResponse(res, 404, false, null, 'No order found with this id')
+            
+            if(getOrder.buyerId !== userId || getOrder.sellerId !== userId) return sendResponse(res, 403, false, null, 'Not allowed')
+            
+            getOrder.status = 'Review'
+            getOrder.isSubmitted = false
+            await getOrder.save()
+
+            //get transaction and update to escrow
+            const getTransaction = await TransactionModel.findOne({ transactionId: getOrder.transactionId })
+            if(getTransaction) {
+                getTransaction.paymentStatus = 'Escrow'
+                await getTransaction.save()
+            }
+
+            //if order is in escrow release remove it
+            const escrowRelease = await EscrowReleaseModel.findOneAndDelete({ orderId })
+
+            getTicket = await DisputeRequestModel.create({
+                userId,
+                orderId,
+                message: [{ message, user: userId }]
+            })
+        } else {
+            const data = { message, user: userId || adminId }
+            getTicket.message.push(data)
+            await getTicket.save()
+        }
+
+        sendResponse(res, 201, true, getTicket, 'Message saved successful')
     } catch (error) {
-        
+        console.log('UNABLE TO REQUEST FUND', error)
+        sendResponse(res, 500, false, null, 'Unable to submit dispute ticket')
     }
 }
 
-//get refund message
+//get refund message of a user
+export async function getDisputeRequestReq(req, rs) {
+    const { userId: aId } = req.user
+    const { userId: uId } = req.params
 
-//send message on refund chat
+    const userId = aId || uId
+    if(!userId) return sendResponse(res, 400, false, null, 'User Id is required')
+    try {
+        const disputes = await DisputeRequestModel.find({ userId })
+
+        sendResponse(res, 200, true, disputes, 'Dispute histroy fetched sucessfull')
+    } catch (error) {
+        console.log('UNABLE TO GET DIPSUTE MESSAGE OF A USER', error)
+        sendResponse(res, 500, false, null, 'Unable to get dispute message')        
+    }
+}
+
+//get disputes messages
+export async function getDisputeRequests(req, res) {
+
+    try {
+        const disputes = await DisputeRequestModel.find()
+
+        sendResponse(res, 200, true, disputes, 'Dispute histroy fetched sucessfull')
+    } catch (error) {
+        console.log('UNABLE TO GET DIPSUTE MESSAGES', error)
+        sendResponse(res, 500, false, null, 'Unable to get dispute messages')        
+    }
+}
+
+//get a dispute
+export async function getDispute(req, res,) {
+    const { id } = req.params
+
+    try {
+        const dispute = await DisputeRequestModel.findById({ _id: id })
+        if(!dispute) return sendResponse(res, 404, false, null, 'Dispute is not found')
+
+        sendResponse(res, 200, true, dispute, 'Dispute fetch successful')
+    } catch (error) {
+        console.log('UNABLE TO GET DISPUTE', error)
+        sendResponse(res, 500, false, null, 'Unable to get dispute')    
+    }
+}
+
+//close refund (dispute chat)
+export async function closeDispute(req, res,) {
+    const { id, orderStatus } = req.params
+    if(orderStatus && !orderStatusOptions.includes(status)) return sendResponse(res, 400, false, null, 'Inavlid status type')
+
+    try {
+        const dispute = await DisputeRequestModel.findById({ _id: id })
+        if(!dispute) return sendResponse(res, 404, false, null, 'Dispute is not found')
+        const getOrder = await OrderModel.findOne({ orderId: dispute.orderId })
+        if(!getOrder) return sendResponse(res, 404, false, null, 'Order is not found')
+        const getTransaction = await TransactionModel.findOne({ transactionId: getOrder.transactionId })
+
+        if(orderStatus) {
+            getOrder.status = orderStatus
+            if(orderStatus === 'Delivered'){
+                if(!getOrder.isSubmitted) {
+                    await EscrowReleaseModel.create({
+                        orderId,
+                        buyerId: getOrder?.buyerId
+                    })
+
+                    //notify user
+                    await NotificationModel.create({
+                        userId: getOrder?.buyerId,
+                        notification: `Your Order ${getOrder?.orderId} has arrived. please proceed confirm order delivery`
+                    })
+                }
+
+                getOrder.isSubmitted = true
+                
+            }
+            if(orderStatus === 'Cancelled'){
+                if(getTransaction) {
+                    getTransaction.paymentStatus = 'Requested Refund'
+                }
+            }
+            if(orderStatus === 'Returned'){
+                if(getTransaction) {
+                    getTransaction.paymentStatus = 'Refunded'
+                }
+            }
+            
+        }
+
+
+        dispute.isCompleted = true
+        dispute.status = 'closed'
+
+        await dispute.save()
+        await getTransaction.save()
+        await getOrder.save()
+
+        sendResponse(res, 200, true, dispute, 'Dispute has been resolved')
+    } catch (error) {
+        console.log('UNABLE TO CLOSE DISPUTE', error)
+        sendResponse(res, 500, false, null, 'Unable to close dispute')    
+    }
+}
 
 //get transaction stats (admin)
 export async function getTransactionsStats(req, res) {
@@ -654,6 +794,8 @@ export async function makePayment(req, res) {
         const getOrder = await OrderModel.findOne({ orderId })
         if(!getOrder) return sendResponse(res, 404, false, null, 'Order with this id does not exist')
         
+        //get and calculate other fators here
+
         //INITIATE PAYMENT
         const data = {
             amount: getOrder.amountAtPurchase,
@@ -744,6 +886,7 @@ export async function verifyPaymentRef(req, res) {
                 if(paymentData?.transaction_status.toLowerCase() === 'success') {
                     getTransaction.success = true
                     getTransaction.transactionStatus = 'Completed'
+                    getTransaction.paymentStatus = 'Escrow'
                     getTransaction.save()
 
                     //update order

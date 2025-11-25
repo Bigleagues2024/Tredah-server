@@ -3256,6 +3256,190 @@ paths:
         500:
           description: Unable to fetch transactions summary
 
+  /transaction/ticketRequest:
+    post:
+      tags:
+        - Transaction
+      summary: Send a dispute request message (BUYER)
+      description: Endpoint for buyer to create/send a dispute request on an order and transaction
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - orderId
+            properties:
+              orderId:
+                type: string
+              message:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /transaction/ticket:
+    post:
+      tags:
+        - Transaction
+      summary: Send/respond a dispute request message (ADMIN)
+      description: Endpoint for admin to send a dispute request response on an order and transaction
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - orderId
+            properties:
+              orderId:
+                type: string
+              message:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
+  /transaction/dispute:
+    get:
+      tags:
+        - Transaction
+      summary: Get dispute history of a buyer
+      description: >
+        Fetches dispute history of the user
+      parameters:
+      responses:
+        200:
+          description: Transactions history fetched successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to get transaction history
+
+  /transaction/getDisputeRequest/{userId}:
+    get:
+      tags:
+        - Transaction
+      summary: Get dispute histroy of a user (ADMIN)
+      description: >
+        Fetches dispute histroy of a user  
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          type: string
+          description: >
+            Fetches the dispute history of a user
+      responses:
+        200:
+          description: successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch transactions summary
+
+  /transaction/disputeRequest:
+    get:
+      tags:
+        - Transaction
+      summary: Get dispute histroy(ADMIN)
+      description: >
+        Fetches dispute histroy 
+      responses:
+        200:
+          description: successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch transactions summary
+
+  /transaction/getDispute/{id}:
+    get:
+      tags:
+        - Transaction
+      summary: Get a dispute info
+      description: >
+        Fetche a dispute info
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+          description: >
+            Fetches the dispute history info
+      responses:
+        200:
+          description: successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch transactions summary
+
+  /transaction/getDisputeRequest/{id}:
+    get:
+      tags:
+        - Transaction
+      summary: Get a dispute info (ADMIN)
+      description: >
+        Fetche a dispute info
+      parameters:
+        - name: id
+          in: path
+          required: true
+          type: string
+          description: >
+            Fetches the dispute history info
+      responses:
+        200:
+          description: successfully
+        400:
+          description: Bad request (invalid params)
+        500:
+          description: Unable to fetch transactions summary
+
+  /transaction/closeTicket:
+    post:
+      tags:
+        - Transaction
+      summary: Close ticket (ADMIN)
+      description: Endpoint for admin to clsoe ticket `orderStatusOptions = ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']`
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          required: true
+          schema:
+            type: object
+            required:
+              - orderId
+            properties:
+              orderId:
+                type: string
+              orderStatus:
+                type: string
+      responses:
+        200:
+          description: Success
+        400:
+          description: User error
+        500:
+          description: Server error
+
 #ORDER
   /order/summary/{period}:
     get:

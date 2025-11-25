@@ -7,6 +7,9 @@ import NotificationModel from "../models/Notification.js";
 import { subDays } from "date-fns";
 import AdminNotificationModel from "../models/AdminNotification.js";
 import RevenueModel from "../models/Revenue.js";
+import EscrowReleaseModel from "../models/EscrowRelease.js";
+import cron from "node-cron";
+import TransactionModel from "../models/Transaction.js";
 
 const orderStatusOptions = ['Pending', 'Processing', 'Shipment', 'Delivered', 'Cancelled', 'Returned']
 
@@ -472,6 +475,7 @@ export async function updateOrderStatus(req, res) {
     try {
         const getOrder = await OrderModel.findOne({ orderId })
         if(!getOrder) return sendResponse()
+        const getTransaction = await TransactionModel.findOne({ transactionId: getOrder?.transactionId })
 
         if(status) getOrder.status = status
         if(shippingDetails) getOrder.shippingDetails = shippingDetails
@@ -497,47 +501,34 @@ export async function updateOrderStatus(req, res) {
         })
 
         if(getOrder.status === 'Delivered'){
-            //if not completed credit seller
-            if (!getOrder.completed) {
-                // Get seller
-                const getSeller = await UserModel.findOne({ userId: getOrder?.sellerId });
+            if(!getOrder.isSubmitted) {
+                await EscrowReleaseModel.create({
+                    orderId,
+                    buyerId: getOrder?.buyerId
+                })
 
-                const priceSold = Number(getOrder.amountAtPurchase);
-                const commissionRate = 8.3; // 8.3%
-
-                // Calculate commission and seller earning
-                const commissionAmount = Number(((commissionRate / 100) * priceSold).toFixed(2));
-                const finalAmount = Number((priceSold - commissionAmount).toFixed(2));
-
-                // CREDIT SELLER WALLET
-                getSeller.wallet = Number(getSeller.wallet) + finalAmount;
-                await getSeller.save();
-
-                // RECORD COMMISSION REVENUE
-                await RevenueModel.create({
-                    amount: commissionAmount,
-                    source: "sales",
-                    userId: getOrder?.sellerId,
-                    sourceId: getOrder.orderId,
-                });
-
-                // Notify seller
+                //notify user
                 await NotificationModel.create({
-                    userId: getOrder.sellerId,
-                    notification: `ORDER ${orderId} has been delivered. Your wallet has been credited with ₦${finalAmount}`
-                });
-
-                // Notify admin
-                await AdminNotificationModel.create({
-                    notification: `ORDER ${orderId} delivered. Seller (${getOrder.sellerId}) wallet credited ₦${finalAmount}. Platform earned ₦${commissionAmount} commission.`
-                });
-
+                    userId: getOrder?.buyerId,
+                    notification: `Your Order ${getOrder?.orderId} has arrived. please proceed confirm order delivery`
+                })
             }
 
-            //set completed to true
-            getOrder.completed = true
+            getOrder.isSubmitted = true
             await getOrder.save()
         }
+        if(getOrder.status === 'Cancelled'){
+            if(getTransaction) {
+                getTransaction.paymentStatus = 'Requested Refund'
+            }
+        }
+        if(getOrder.status === 'Returned'){
+            if(getTransaction) {
+                getTransaction.paymentStatus = 'Refunded'
+            }
+        }
+        await getOrder.save()
+        await getTransaction.save()
 
         const { _id, ...orderData } = getOrder._doc
         sendResponse(res, 200, true, orderData, 'Order updated successful')
@@ -546,6 +537,100 @@ export async function updateOrderStatus(req, res) {
         sendResponse(res, 500, false, null, 'Unable to update order status')
     }
 }
+
+//corn job here to run every hour
+async function runHourlyTask() {
+  try {
+    console.log("⏳ Running hourly task...");
+
+    // 1. Get all escrow items older than 3 days
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+    const expiredEscrows = await EscrowReleaseModel.find({
+      createdAt: { $lte: threeDaysAgo },
+      released: false,
+    });
+
+    if (!expiredEscrows.length) {
+      console.log("No expired escrow entries found.");
+      return;
+    }
+
+    console.log(`Found ${expiredEscrows.length} records to process.`);
+
+
+    // 2. Process each escrow entry
+    for (const escrow of expiredEscrows) {
+      const { orderId } = escrow;
+
+      // Fetch order
+      const getOrder = await OrderModel.findOne({ orderId });
+      if (!getOrder) continue;
+
+      // If order already completed, skip
+      if (getOrder.completed) continue;
+
+      // Fetch seller
+      const getSeller = await UserModel.findOne({ userId: getOrder.sellerId });
+      if (!getSeller) continue;
+
+      // Calculate commission & seller payout
+      const priceSold = Number(getOrder.amountAtPurchase);
+      const commissionRate = 8.3;
+
+      const commissionAmount = Number(((commissionRate / 100) * priceSold).toFixed(2));
+      const sellerAmount = Number((priceSold - commissionAmount).toFixed(2));
+
+      // ▼ CREDIT SELLER WALLET
+      getSeller.wallet = Number(getSeller.wallet) + sellerAmount;
+      await getSeller.save();
+
+      // ▼ RECORD COMMISSION (REVENUE)
+      await RevenueModel.create({
+        amount: commissionAmount,
+        source: "sales",
+        userId: getOrder.sellerId,
+        sourceId: getOrder.orderId,
+      });
+
+      // ▼ SEND NOTIFICATIONS
+      await NotificationModel.create({
+        userId: getOrder.sellerId,
+        notification: `ORDER ${orderId} has been auto-delivered. Your wallet has been credited with ₦${sellerAmount}.`
+      });
+
+      await AdminNotificationModel.create({
+        notification: `ORDER ${orderId} auto-released. Seller (${getOrder.sellerId}) credited ₦${sellerAmount}. Platform earned ₦${commissionAmount} commission.`
+      });
+
+      // ▼ MARK ORDER AS COMPLETED
+      getOrder.completed = true;
+      await getOrder.save();
+
+      // ▼ UPDATE TRANSACTION PAYMENT STATUS → Released
+      await TransactionModel.findOneAndUpdate(
+        { transactionId: getOrder.transactionId },
+        { paymentStatus: "Released" }
+      );
+
+      // ▼ MARK ESCROW AS RELEASED
+      await EscrowReleaseModel.findOneAndDelete({ orderId: escrow.orderId })
+      //escrow.released = true;
+      //await escrow.save();
+
+      console.log(`✔ Order ${orderId} auto-released successfully.`);
+    }
+
+  } catch (error) {
+    console.error("❌ Error in hourly task:", error);
+  }
+}
+
+//1hr con-job
+cron.schedule("0 * * * *", () => {
+  console.log("🔔 Cron job triggered");
+  runHourlyTask();
+});
 
 //fetch order summary
 export async function getOrderSummary(req, res) {
@@ -786,6 +871,7 @@ export async function getUserOrderStats(req, res) {
       { id: 'processingOrders', name: 'Processing Orders', filter: { ...query, status: 'Processing' } },
       { id: 'shipmentOrders', name: 'Shipment Orders', filter: { ...query, status: 'Shipment' } },
       { id: 'deliveredOrders', name: 'Delivered Orders', filter: { ...query, status: 'Delivered' } },
+      { id: 'cancelledOrders', name: 'Review Orders', filter: { ...query, status: 'Review' } },
       { id: 'cancelledOrders', name: 'Cancelled Orders', filter: { ...query, status: 'Cancelled' } },
       { id: 'returnedOrders', name: 'Returned Orders', filter: { ...query, status: 'Returned' } },
     ];
